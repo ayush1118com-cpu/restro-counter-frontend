@@ -23,6 +23,7 @@ import { BillPreviewModal } from '@/components/pos/bill-preview-modal';
 import { Order } from '@/types';
 import { toast } from 'sonner';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/lib/config';
 
 export default function POSScreenPage() {
   const {
@@ -50,7 +51,7 @@ export default function POSScreenPage() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token) return;
 
-    const socket: Socket = io('http://localhost:5000', {
+    const socket: Socket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
     });

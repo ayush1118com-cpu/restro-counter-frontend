@@ -22,6 +22,7 @@ import {
 import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
 import { io, Socket } from 'socket.io-client';
+import { API_URL, SOCKET_URL } from '@/lib/config';
 
 export default function KitchenDisplayScreenPage() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function KitchenDisplayScreenPage() {
     }
 
     setSocketStatus('reconnecting');
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
@@ -252,7 +253,7 @@ export default function KitchenDisplayScreenPage() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (token) {
       try {
-        const res = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+        const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
