@@ -43,7 +43,79 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
   const displayPhone = activeRestaurant?.phone || currentUser?.phone || '';
 
   const handlePrint = () => {
-    window.print();
+    const printContent = document.getElementById('printable-receipt');
+    if (!printContent) return;
+    
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const iframeDoc = iframe.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(`
+        <html>
+          <head>
+            <title>Print Bill</title>
+            <style>
+              @page { size: 80mm auto; margin: 0; }
+              body { 
+                font-family: monospace; 
+                width: 80mm; 
+                margin: 0; 
+                padding: 15px; 
+                color: black; 
+                background: white; 
+              }
+              * { box-sizing: border-box; }
+              .text-center { text-align: center; }
+              .text-right { text-align: right; }
+              .font-bold, .font-black { font-weight: bold; }
+              .uppercase { text-transform: uppercase; }
+              .flex { display: flex; }
+              .justify-between { justify-content: space-between; }
+              .border-b { border-bottom: 1px dashed #000; }
+              .border-dashed { border-style: dashed; }
+              .border-gray-400, .border-gray-300 { border-color: #000 !important; }
+              .py-2 { padding-top: 8px; padding-bottom: 8px; }
+              .py-3 { padding-top: 12px; padding-bottom: 12px; }
+              .pt-2 { padding-top: 8px; }
+              .pb-2 { padding-bottom: 8px; }
+              .pb-4 { padding-bottom: 16px; }
+              .my-2 { margin-top: 8px; margin-bottom: 8px; }
+              .mb-1 { margin-bottom: 4px; }
+              .mt-1 { margin-top: 4px; }
+              .mt-4 { margin-top: 16px; }
+              .space-y-1 > * + * { margin-top: 4px; }
+              .space-y-2 > * + * { margin-top: 8px; }
+              .space-y-4 > * + * { margin-top: 16px; }
+              .text-xs { font-size: 12px; }
+              .text-sm { font-size: 14px; }
+              .text-base { font-size: 16px; }
+              p, h3 { margin: 0; }
+              svg { display: none; }
+            </style>
+          </head>
+          <body>
+            ${printContent.innerHTML}
+          </body>
+        </html>
+      `);
+      iframeDoc.close();
+      
+      iframe.contentWindow?.focus();
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 500);
+      }, 250);
+    }
   };
 
   const handleDownload = () => {
@@ -186,3 +258,6 @@ TOTAL:       ${formatINR(order.total)}
     </Modal>
   );
 }
+
+
+
