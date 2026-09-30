@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
+import { API_URL } from '@/lib/config';
 
 const loginSchema = z.object({
   email: z.string().email('Valid email address is required'),
@@ -44,7 +45,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       // Call Backend API
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email, password: data.password }),

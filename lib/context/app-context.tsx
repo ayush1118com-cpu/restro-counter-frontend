@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { API_URL } from '../config';
 import {
   Category,
   Lead,
@@ -222,7 +223,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    fetch('http://localhost:5000/api/orders', {
+    fetch(`${API_URL}/orders`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -269,7 +270,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    fetch('http://localhost:5000/api/restaurants', {
+    fetch(`${API_URL}/restaurants`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -426,7 +427,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       formData.append('adminEmail', data.email);
       formData.append('adminPassword', data.password || 'RestroAdmin123!');
 
-      fetch('http://localhost:5000/api/restaurants', {
+      fetch(`${API_URL}/restaurants`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -656,7 +657,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
       if (token) {
-        fetch('http://localhost:5000/api/orders', {
+        fetch(`${API_URL}/orders`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -714,7 +715,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // MONGODB SYNC
       const token = localStorage.getItem('accessToken');
       if (token) {
-        fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+        fetch(`${API_URL}/orders/${orderId}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
