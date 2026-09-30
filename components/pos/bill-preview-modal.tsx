@@ -1,0 +1,168 @@
+'use client';
+
+import React from 'react';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Order } from '@/types';
+import { formatINR, formatDate } from '@/lib/utils';
+import { Printer, Download, CheckCircle2 } from 'lucide-react';
+import { useApp } from '@/lib/context/app-context';
+
+export interface BillPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  order: Order | null;
+}
+
+export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalProps) {
+  const { currentUser, restaurants } = useApp();
+
+  if (!order) return null;
+
+  // ====== RESTAURANT DATA FOR BILL ======
+  // Priority: match by restaurantId > match by email > match by phone > first restaurant in list
+  const STALE_NAMES = ['Spice Garden Restaurant', 'Spice Garden', 'Counter Restaurant Outlet', 'Restro Counter Outlet'];
+
+  const activeRestaurant =
+    restaurants.find((r) => r.id === currentUser?.restaurantId) ||
+    restaurants.find((r) => r.email === currentUser?.email) ||
+    restaurants.find((r) => r.phone === currentUser?.phone) ||
+    (restaurants.length > 0 ? restaurants[0] : null);
+
+  // Restaurant Name: always use the ACTUAL restaurant record name
+  const displayName = activeRestaurant?.name
+    || (currentUser?.restaurantName && !STALE_NAMES.includes(currentUser.restaurantName) ? currentUser.restaurantName : null)
+    || (currentUser?.name ? `${currentUser.name.replace(/\s*\(Counter Admin\)/i, '').replace(/\s*\(Admin\)/i, '').trim()}'s Restaurant` : 'Restaurant Counter');
+
+  // Address: always from restaurant record
+  const displayAddress = activeRestaurant
+    ? `${activeRestaurant.address}, ${activeRestaurant.city}`
+    : 'Counter Outlet';
+
+  // Phone: always from restaurant record
+  const displayPhone = activeRestaurant?.phone || currentUser?.phone || '';
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    const textContent = `
+========================================
+   ${displayName.toUpperCase()}
+   ${displayAddress}
+   ${displayPhone ? `Phone: ${displayPhone}` : ''}
+========================================
+Order #${order.orderNumber}
+Date: ${formatDate(order.createdAt)}
+Payment Method: ${order.paymentMethod} (${order.paymentStatus})
+----------------------------------------
+${order.items.map((i) => `${i.name.padEnd(20)} ${i.quantity} x ${formatINR(i.price)} = ${formatINR(i.quantity * i.price)}`).join('\n')}
+----------------------------------------
+Subtotal:    ${formatINR(order.subtotal)}
+Tax (5% GST): ${formatINR(order.tax)}
+Discount:    ${formatINR(order.discount)}
+TOTAL:       ${formatINR(order.total)}
+========================================
+   Thank you! Please visit again.
+========================================
+    `;
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Bill_Order_${order.orderNumber}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Tax Invoice & Bill Preview" maxWidth="md">
+      <div className="space-y-6">
+        {/* Printable Bill Area */}
+        <div
+          id="printable-receipt"
+          className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs font-mono text-xs text-gray-900 space-y-4"
+        >
+          {/* Header */}
+          <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-4">
+            <h3 className="text-base font-black uppercase tracking-wider font-sans text-gray-900">
+              {displayName}
+            </h3>
+            <p className="text-xs font-semibold text-gray-800">{displayAddress}</p>
+            <p className="text-xs font-semibold text-gray-800">Ph: {displayPhone} | GSTIN: 07AAAAA0000A1Z5</p>
+          </div>
+
+          {/* Order Details */}
+          <div className="flex items-center justify-between text-gray-900 py-1.5 border-b border-dashed border-gray-400">
+            <div>
+              <p className="font-bold text-gray-900 text-sm">Order #{order.orderNumber}</p>
+              <p className="text-xs font-semibold text-gray-700">{formatDate(order.createdAt)}</p>
+            </div>
+            <div className="text-right">
+              <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-900 text-[11px] font-extrabold rounded-full uppercase border border-emerald-300">
+                PAID VIA {order.paymentMethod}
+              </span>
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="space-y-2 py-2">
+            <div className="flex justify-between font-bold text-gray-900 border-b border-gray-400 pb-1">
+              <span>Item Description</span>
+              <span>Qty × Price</span>
+              <span>Amount</span>
+            </div>
+            {order.items.map((item, idx) => (
+              <div key={idx} className="flex justify-between items-center text-gray-900 font-semibold">
+                <span className="truncate max-w-[140px] font-bold">{item.name}</span>
+                <span className="text-gray-800">
+                  {item.quantity} × {formatINR(item.price)}
+                </span>
+                <span className="font-extrabold text-gray-900">{formatINR(item.quantity * item.price)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Totals */}
+          <div className="border-t border-dashed border-gray-400 pt-3 space-y-1 text-gray-900 font-semibold">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span className="font-bold">{formatINR(order.subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tax (5% GST)</span>
+              <span className="font-bold">{formatINR(order.tax)}</span>
+            </div>
+            {order.discount > 0 && (
+              <div className="flex justify-between text-emerald-700 font-bold">
+                <span>Discount</span>
+                <span>-{formatINR(order.discount)}</span>
+              </div>
+            )}
+            <div className="border-t-2 border-gray-900 pt-2 flex justify-between font-black text-base text-gray-900">
+              <span>TOTAL</span>
+              <span>{formatINR(order.total)}</span>
+            </div>
+          </div>
+
+          {/* Footer message */}
+          <div className="text-center pt-4 border-t border-dashed border-gray-400 text-xs text-gray-800 font-sans">
+            <p className="font-bold text-gray-900">Thank you for dining with us!</p>
+            <p>Visit again soon for fresh counter meals.</p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <Button variant="outline" size="md" onClick={handleDownload}>
+            <Download className="w-4 h-4" /> Download Bill
+          </Button>
+          <Button variant="primary" size="md" onClick={handlePrint} className="font-bold shadow-md shadow-amber-500/20">
+            <Printer className="w-4 h-4" /> Print Bill
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}

@@ -1,15 +1,12 @@
 import React from 'react';
-import PublicHomePage from './(public)/page';
 import { PublicNavbar } from '@/components/layout/public-navbar';
 import { PublicFooter } from '@/components/layout/public-footer';
 
-export default function RootPage() {
+export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#0b0f17]">
+    <div className="min-h-screen flex flex-col bg-[#fcfcfd]">
       <PublicNavbar />
-      <main className="flex-1">
-        <PublicHomePage />
-      </main>
+      <main className="flex-1">{children}</main>
       <PublicFooter />
     </div>
   );
