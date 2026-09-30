@@ -139,10 +139,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const resData = await res.json();
 
       if (res.status === 401 || res.status === 403) {
-        toast.error(resData.message || 'Session expired or account suspended. Please log in again.');
+        toast.error(`Access Denied (${res.status}) on ${url.split('/').pop()}: ${resData.message || 'Suspended'}`);
         logout();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          setTimeout(() => { window.location.href = '/login'; }, 1500);
         }
         return { success: false, ...resData };
       }
@@ -225,48 +225,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(err => console.error('Failed to fetch orders from DB:', err));
 
-    // Fetch Categories
-    authFetch(`${API_URL}/categories`)
-      .then(resData => {
-        if (resData.success && Array.isArray(resData.data)) {
-          const dbCategories = resData.data.map((c: any) => ({
-            id: c._id,
-            name: c.name,
-            description: c.description || '',
-            itemCount: c.itemCount || 0,
-            isActive: c.isActive
-          }));
-          setCategories(dbCategories);
-        }
-      })
-      .catch(err => console.error('Failed to fetch categories:', err));
+    // Fetch Categories and Menu (Only for RESTAURANT_ADMIN, Kitchen Staff doesn't need them and will get 403)
+    if (currentUser.role === 'RESTAURANT_ADMIN') {
+      authFetch(`${API_URL}/categories`)
+        .then(resData => {
+          if (resData.success && Array.isArray(resData.data)) {
+            const dbCategories = resData.data.map((c: any) => ({
+              id: c._id,
+              name: c.name,
+              description: c.description || '',
+              itemCount: c.itemCount || 0,
+              isActive: c.isActive
+            }));
+            setCategories(dbCategories);
+          }
+        })
+        .catch(err => console.error('Failed to fetch categories:', err));
 
-    // Fetch Menu Items
-    authFetch(`${API_URL}/menu`)
-      .then(resData => {
-        if (resData.success && Array.isArray(resData.data)) {
-          const dbMenuItems = resData.data.map((m: any) => ({
-            id: m._id,
-            categoryId: m.category,
-            categoryName: m.category?.name || 'Category',
-            name: m.name,
-            description: m.description || '',
-            price: m.price,
-            discountPrice: m.discountPrice,
-            image: m.imageUrl || m.image || '',
-            isAvailable: m.isAvailable !== false,
-            requiresKitchen: m.requiresKitchen !== false
-          }));
-          setMenuItems(dbMenuItems);
-        }
-      })
-      .catch(err => console.error('Failed to fetch menu items:', err));
+      authFetch(`${API_URL}/menu`)
+        .then(resData => {
+          if (resData.success && Array.isArray(resData.data)) {
+            const dbMenuItems = resData.data.map((m: any) => ({
+              id: m._id,
+              categoryId: m.categoryId?._id || m.categoryId,
+              categoryName: m.categoryId?.name || 'Category',
+              name: m.name,
+              description: m.description || '',
+              price: m.price,
+              discountPrice: m.discountPrice,
+              image: m.imageUrl || m.image || '',
+              isAvailable: m.isAvailable !== false,
+              requiresKitchen: m.requiresKitchen !== false
+            }));
+            setMenuItems(dbMenuItems);
+          }
+        })
+        .catch(err => console.error('Failed to fetch menu items:', err));
+    }
 
   }, [currentUser?.restaurantId]);
 
   // MONGODB SYNC: Fetch real restaurants (For Super Admin & login matches)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || currentUser?.role !== 'SUPER_ADMIN') return;
     
     const token = localStorage.getItem('accessToken');
     if (!token) return;
@@ -516,28 +517,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (token) {
-      const formData = new FormData();
-      formData.append('name', item.name);
-      formData.append('category', item.categoryId);
-      formData.append('price', item.price.toString());
-      if (item.discountPrice) formData.append('discountPrice', item.discountPrice.toString());
-      formData.append('description', item.description || '');
-      formData.append('isAvailable', String(item.isAvailable));
-      
       fetch(`${API_URL}/menu`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          categoryId: item.categoryId,
+          name: item.name,
+          description: item.description || '',
+          price: Number(item.price),
+          discountPrice: item.discountPrice ? Number(item.discountPrice) : undefined,
+          isAvailable: item.isAvailable !== false,
+          requiresKitchen: item.requiresKitchen !== false
+        })
       }).then(res => res.json()).then(resData => {
          if(resData.success) {
             const m = resData.data;
             const newItem: MenuItem = {
-              id: m._id, categoryId: m.category, categoryName: item.categoryName, name: m.name, description: m.description || '',
+              id: m._id, categoryId: m.categoryId?._id || m.categoryId || item.categoryId, categoryName: item.categoryName, name: m.name, description: m.description || '',
               price: m.price, discountPrice: m.discountPrice, image: m.imageUrl || '',
               isAvailable: m.isAvailable !== false, requiresKitchen: m.requiresKitchen !== false
             };
             setMenuItems(prev => [newItem, ...prev]);
+         } else {
+            toast.error(resData.message || 'Failed to add menu item');
          }
+      }).catch(err => {
+         console.error('Add menu item error:', err);
       });
     }
 
