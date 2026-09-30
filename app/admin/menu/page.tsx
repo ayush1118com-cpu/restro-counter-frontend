@@ -52,7 +52,7 @@ export default function MenuManagementPage() {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
     defaultValues: {
@@ -86,17 +86,17 @@ export default function MenuManagementPage() {
     setIsModalOpen(true);
   };
 
-  const onSubmit = (data: MenuItemFormData) => {
+  const onSubmit = async (data: MenuItemFormData) => {
     const categoryObj = categories.find((c) => c.id === data.categoryId);
     const categoryName = categoryObj?.name || 'General';
 
     if (editingItem) {
-      updateMenuItem(editingItem.id, {
+      await updateMenuItem(editingItem.id, {
         ...data,
         categoryName,
       });
     } else {
-      addMenuItem({
+      await addMenuItem({
         ...data,
         categoryName,
       });
@@ -313,8 +313,8 @@ export default function MenuManagementPage() {
             <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" className="font-bold">
-              Save Item
+            <Button variant="primary" type="submit" className="font-bold" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Item'}
             </Button>
           </div>
         </form>
@@ -335,3 +335,5 @@ export default function MenuManagementPage() {
     </div>
   );
 }
+
+
