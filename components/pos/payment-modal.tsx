@@ -27,7 +27,7 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
   const handleConfirmPayment = async () => {
     setIsProcessing(true);
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const order = createOrder(selectedMethod, customerPhone || undefined, customerName || undefined);
+    const order = await createOrder(selectedMethod, customerPhone || undefined, customerName || undefined);
     setCreatedOrder(order);
     setIsProcessing(false);
     onPaymentSuccess(order);
@@ -182,3 +182,4 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
     </Modal>
   );
 }
+

@@ -40,7 +40,7 @@ interface AppContextType {
 
   // Restaurants (Super Admin)
   restaurants: Restaurant[];
-  addRestaurant: (data: Omit<Restaurant, 'id' | 'ordersCount' | 'salesTotal' | 'createdAt' | 'activeMenuCount'>) => Restaurant;
+  addRestaurant: (data: Omit<Restaurant, 'id' | 'ordersCount' | 'salesTotal' | 'createdAt' | 'activeMenuCount'>) => Promise<Restaurant | null>;
   updateRestaurantStatus: (id: string, status: RestaurantStatus) => void;
   updateRestaurant: (id: string, data: Partial<Restaurant>) => void;
 
@@ -73,7 +73,7 @@ interface AppContextType {
   // Orders & Kitchen
   orders: Order[];
   payments: PaymentTransaction[];
-  createOrder: (paymentMethod: PaymentMethod, customerPhone?: string, customerName?: string) => Order;
+  createOrder: (paymentMethod: PaymentMethod, customerPhone?: string, customerName?: string) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
 
   // Sound alert trigger
@@ -443,88 +443,164 @@ saveStorage('restro_menu_items', dbMenuItems);
 
 
   // Restaurant actions (Super Admin)
-  const addRestaurant = (data: any): Restaurant => {
+  const addRestaurant = async (data: any) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    let finalId = `rest_${Date.now()}`;
+    let savedRest: any = null;
+
+    if (token) {
+      try {
+        const formData = new FormData();
+        formData.append('name', data.name);
+        formData.append('ownerName', data.ownerName);
+        formData.append('email', data.email);
+        formData.append('phone', data.phone);
+        formData.append('address', data.address);
+        formData.append('city', data.city);
+        formData.append('adminEmail', data.email);
+        formData.append('adminPassword', data.password || 'RestroAdmin123!');
+
+        const res = await fetch(`${API_URL}/restaurants`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          savedRest = resData.data;
+          finalId = savedRest._id;
+        } else {
+          toast.error(resData.message || 'Failed to create restaurant');
+          return null;
+        }
+      } catch (e) {
+        console.error('Backend sync offline:', e);
+        toast.error('Failed to connect to server');
+        return null;
+      }
+    }
+
     const newRest: Restaurant = {
       ...data,
-      id: `rest_${Date.now()}`,
+      id: finalId,
       ordersCount: 0,
       salesTotal: 0,
       activeMenuCount: 0,
-      createdAt: new Date().toISOString(),
+      createdAt: savedRest ? savedRest.createdAt : new Date().toISOString(),
     };
+
     setRestaurants((prev) => {
       const updated = [newRest, ...prev];
       saveStorage('restro_restaurants', updated);
       return updated;
     });
 
-    // Sync to Backend Mongo API if authenticated
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (token) {
-      // Create FormData because backend uses multer uploadSingleImage
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('ownerName', data.ownerName);
-      formData.append('email', data.email);
-      formData.append('phone', data.phone);
-      formData.append('address', data.address);
-      formData.append('city', data.city);
-      formData.append('adminEmail', data.email);
-      formData.append('adminPassword', data.password || 'RestroAdmin123!');
-
-      fetch(`${API_URL}/restaurants`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      }).catch((e) => console.log('Backend sync offline:', e));
-    }
-
     toast.success(`Restaurant "${newRest.name}" added successfully`);
     return newRest;
   };
 
-  const updateRestaurantStatus = (id: string, status: RestaurantStatus) => {
-    setRestaurants((prev) => {
-      const updated = prev.map((r) => (r.id === id ? { ...r, status } : r));
-      saveStorage('restro_restaurants', updated);
-      return updated;
-    });
+  const updateRestaurantStatus = async (id: string, status: RestaurantStatus) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/restaurants/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status })
+        });
+        const resData = await res.json();
+        if (!resData.success) {
+          toast.error(resData.message || 'Failed to update status');
+          return;
+        }
+      } catch (err) {
+        console.error('Update status error:', err);
+        return;
+      }
+    }
+    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
     toast.success(`Restaurant status updated to ${status}`);
   };
 
-  const updateRestaurant = (id: string, data: Partial<Restaurant>) => {
-    setRestaurants((prev) => {
-      const updated = prev.map((r) => (r.id === id ? { ...r, ...data } : r));
-      saveStorage('restro_restaurants', updated);
-      return updated;
-    });
+  const updateRestaurant = async (id: string, data: Partial<Restaurant>) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/restaurants/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(data)
+        });
+        const resData = await res.json();
+        if (!resData.success) {
+          toast.error(resData.message || 'Failed to update restaurant');
+          return;
+        }
+      } catch (err) {
+        console.error('Update restaurant error:', err);
+        return;
+      }
+    }
+    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     toast.success('Restaurant details updated');
   };
 
   // Leads actions
-  const addLead = (data: Omit<Lead, 'id' | 'status' | 'createdAt'>) => {
-    const newLead: Lead = {
-      ...data,
-      id: `lead_${Date.now()}`,
-      status: 'NEW',
-      createdAt: new Date().toISOString(),
-    };
-    setLeads((prev) => {
-      const updated = [newLead, ...prev];
-      saveStorage('restro_leads', updated);
-      return updated;
-    });
-    toast.success('Thank you! Your demo request has been received.');
+  const addLead = async (data: Omit<Lead, 'id' | 'status' | 'createdAt'>) => {
+    try {
+      const res = await fetch(`${API_URL}/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const resData = await res.json();
+      if (!resData.success) {
+        toast.error(resData.message || 'Failed to submit request');
+        return;
+      }
+      
+      const l = resData.data;
+      const newLead: Lead = {
+        id: l._id,
+        restaurantName: l.restaurantName,
+        ownerName: l.ownerName || l.name || '',
+        phone: l.phone,
+        email: l.email,
+        city: l.city,
+        approxOrdersPerDay: l.approxOrdersPerDay || '0',
+        currentPos: l.currentPos,
+        message: l.message || l.notes,
+        status: l.status,
+        createdAt: l.createdAt
+      };
+      setLeads((prev) => [newLead, ...prev]);
+      toast.success('Thank you! Your demo request has been received.');
+    } catch (err) {
+      console.error('Lead submission error:', err);
+      toast.error('Failed to submit request');
+    }
   };
 
-  const updateLeadStatus = (id: string, status: LeadStatus) => {
-    setLeads((prev) => {
-      const updated = prev.map((l) => (l.id === id ? { ...l, status } : l));
-      saveStorage('restro_leads', updated);
-      return updated;
-    });
+  const updateLeadStatus = async (id: string, status: LeadStatus) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/leads/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status })
+        });
+        const resData = await res.json();
+        if (!resData.success) {
+          toast.error(resData.message || 'Failed to update lead status');
+          return;
+        }
+      } catch (err) {
+        console.error('Update lead error:', err);
+        return;
+      }
+    }
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
     toast.success(`Lead status updated to ${status}`);
   };
 
@@ -738,11 +814,11 @@ saveStorage('restro_menu_items', dbMenuItems);
   const cartTotal = cartSubtotal + cartTax;
 
   // Order & POS actions
-  const createOrder = (paymentMethod: PaymentMethod, customerPhone?: string, customerName?: string): Order => {
+  const createOrder = async (paymentMethod: PaymentMethod, customerPhone?: string, customerName?: string): Promise<Order> => {
     const orderNum = (1025 + orders.length + 1).toString();
     const hasKitchenItems = cart.some((ci) => ci.requiresKitchen !== false);
 
-    const newOrder: Order = {
+    let newOrder: Order = {
       id: `ord_${Date.now()}`,
       orderNumber: orderNum,
       restaurantId: currentUser?.restaurantId || 'rest_1',
@@ -767,6 +843,50 @@ saveStorage('restro_menu_items', dbMenuItems);
       customerPhone,
     };
 
+    // MONGODB SYNC: Push new order to backend
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        try {
+          const res = await fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              items: newOrder.items.map(i => ({
+                menuItemId: i.itemId,
+                quantity: i.quantity,
+                notes: i.notes
+              })),
+              paymentMethod: newOrder.paymentMethod,
+              discount: newOrder.discount,
+              tax: newOrder.tax,
+              confirmPayment: true,
+              customerName: newOrder.customerName,
+              customerPhone: newOrder.customerPhone
+            })
+          });
+          const resData = await res.json();
+          if (resData.success) {
+            const dbOrder = resData.data;
+            newOrder = {
+              ...newOrder,
+              id: dbOrder._id || dbOrder.id,
+              orderNumber: dbOrder.orderNumber || newOrder.orderNumber,
+              createdAt: dbOrder.createdAt,
+              updatedAt: dbOrder.updatedAt
+            };
+          } else {
+            console.error('Failed to create order in DB:', resData.message);
+          }
+        } catch (err) {
+          console.error('Failed to sync new order to DB:', err);
+        }
+      }
+    }
+
     const newPayment: PaymentTransaction = {
       id: `pay_${Date.now()}`,
       orderId: newOrder.id,
@@ -782,32 +902,6 @@ saveStorage('restro_menu_items', dbMenuItems);
       saveStorage('restro_orders', updated);
       return updated;
     });
-
-    // MONGODB SYNC: Push new order to backend
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        fetch(`${API_URL}/orders`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            items: newOrder.items.map(i => ({
-              menuItemId: i.itemId,
-              quantity: i.quantity
-            })),
-            paymentMethod: newOrder.paymentMethod,
-            discount: newOrder.discount,
-            tax: newOrder.tax,
-            confirmPayment: true,
-            customerName: newOrder.customerName,
-            customerPhone: newOrder.customerPhone
-          })
-        }).catch(err => console.error('Failed to sync new order to DB:', err));
-      }
-    }
 
     setPayments((prev) => {
       const updated = [newPayment, ...prev];
@@ -828,7 +922,7 @@ saveStorage('restro_menu_items', dbMenuItems);
 
     // Trigger visual + sound alert for kitchen / counter
     playOrderNotificationSound();
-    toast.success(`Order #${orderNum} created successfully via ${paymentMethod}`);
+    toast.success(`Order #${newOrder.orderNumber} created successfully via ${paymentMethod}`);
 
     return newOrder;
   };
@@ -926,6 +1020,7 @@ export function useApp() {
   }
   return context;
 }
+
 
 
 
