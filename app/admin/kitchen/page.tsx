@@ -249,25 +249,7 @@ export default function KitchenDisplayScreenPage() {
     );
     updateContextOrderStatus(orderId, nextStatus as any);
 
-    // 2. Call backend API if authenticated
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: nextStatus }),
-        });
-        if (res.ok) {
-          toast.success(`Order status updated to ${nextStatus}`);
-        }
-      } catch (e) {
-        console.log('Backend sync offline, status updated locally.');
-      }
-    }
+
   };
 
   const handleKitchenLogout = () => {

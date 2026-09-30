@@ -86,7 +86,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex flex-col md:flex-row font-sans text-[#172033]">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-[#F7F8FA] flex flex-col md:flex-row font-sans text-[#172033]">
       {/* Mobile Header */}
       <div className="md:hidden bg-white border-b border-[#E7EAF0] px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
@@ -117,9 +117,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div>
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Restaurant Branding Area */}
-          <div className="p-4 border-b border-[#E7EAF0] flex items-center gap-3">
+          <div className="p-4 border-b border-[#E7EAF0] flex items-center gap-3 shrink-0">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/50 shrink-0">
               <ChefHat className="w-5 h-5 text-amber-600" />
             </div>
@@ -134,7 +134,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-3 space-y-1">
+          <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;

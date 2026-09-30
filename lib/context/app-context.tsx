@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { API_URL } from '../config';
+import { API_URL, SOCKET_URL } from '../config';
 import {
   Category,
   Lead,
@@ -332,36 +332,76 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Listen for real-time order broadcasts across browser tabs
+  // Listen for real-time order broadcasts across browser tabs and computers
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    let socket: any = null;
+
     try {
+      // 1. Local Cross-tab sync
       const channel = new BroadcastChannel('restro_orders_sync');
       channel.onmessage = (event) => {
         const { type, order, orderId, status } = event.data || {};
         if (type === 'NEW_ORDER' && order) {
           setOrders((prev) => {
             if (prev.some((o) => (o.id || o.orderNumber) === (order.id || order.orderNumber))) return prev;
-            const updated = [order, ...prev];
-            saveStorage('restro_orders', updated);
-            return updated;
+            return [order, ...prev];
           });
           playOrderNotificationSound();
-          toast.success(`🔔 NEW KITCHEN TICKET! Order #${order.orderNumber}`);
+          toast.success("NEW KITCHEN TICKET! Order #" + order.orderNumber);
         } else if (type === 'UPDATE_STATUS' && orderId && status) {
-          setOrders((prev) => {
-            const updated = prev.map((o) => (o.id === orderId || o.orderNumber === orderId ? { ...o, status } : o));
-            saveStorage('restro_orders', updated);
-            return updated;
-          });
+          setOrders((prev) => prev.map((o) => (o.id === orderId || o.orderNumber === orderId ? { ...o, status } : o)));
         }
       };
 
-      return () => channel.close();
+      // 2. Global Cross-computer sync (Socket.IO)
+      const token = localStorage.getItem('accessToken');
+      if (token && currentUser && currentUser.role !== 'SUPER_ADMIN') {
+        import('socket.io-client').then(({ io }) => {
+          socket = io(SOCKET_URL, { auth: { token }, transports: ['websocket', 'polling'] });
+
+          socket.on('new-order', (payload: any) => {
+            if (payload?.order) {
+              const newOrder = payload.order;
+              setOrders((prev) => {
+                if (prev.some((o) => (o.id || o.orderNumber) === (newOrder._id || newOrder.id || newOrder.orderNumber))) return prev;
+                const normalized = {
+                  id: newOrder._id || newOrder.id,
+                  orderNumber: newOrder.orderNumber?.toString(),
+                  restaurantId: newOrder.restaurantId,
+                  items: newOrder.items.map((i: any) => ({
+                    itemId: i.menuItemId || i.itemId, name: i.name, price: i.price, quantity: i.quantity, requiresKitchen: i.requiresKitchen, notes: i.notes
+                  })),
+                  subtotal: newOrder.subtotal, tax: newOrder.tax, discount: newOrder.discount, total: newOrder.grandTotal || newOrder.total,
+                  paymentMethod: newOrder.paymentMethod, paymentStatus: newOrder.paymentStatus, status: newOrder.orderStatus || newOrder.status,
+                  createdAt: newOrder.createdAt, updatedAt: newOrder.updatedAt, customerName: newOrder.customerName, customerPhone: newOrder.customerPhone,
+                };
+                return [normalized as Order, ...prev];
+              });
+            }
+          });
+
+          const statusEvents = ['order-accepted', 'order-preparing', 'order-ready', 'order-completed', 'order-cancelled'];
+          statusEvents.forEach((evt) => {
+            socket.on(evt, (payload: any) => {
+              if (payload?.order) {
+                const targetId = payload.order._id || payload.order.id;
+                const nextStatus = payload.order.orderStatus || payload.order.status;
+                setOrders((prev) => prev.map((o) => (o.id === targetId || o.orderNumber === targetId ? { ...o, status: nextStatus } : o)));
+              }
+            });
+          });
+        });
+      }
+
+      return () => {
+        channel.close();
+        if (socket) socket.disconnect();
+      };
     } catch (e) {
-      console.log('BroadcastChannel sync error:', e);
+      console.log('Sync init error:', e);
     }
-  }, []);
+  }, [currentUser]); // Re-run if user changes
 
   // Auth actions
   const loginAs = (role: 'SUPER_ADMIN' | 'RESTAURANT_ADMIN' | 'KITCHEN_STAFF', customUser?: User) => {
@@ -498,18 +538,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCategory = (id: string, name: string, description?: string) => {
-    setCategories((prev) => {
-      const updated = prev.map((c) => (c.id === id ? { ...c, name, description } : c));
-      return updated;
-    });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/categories/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, description })
+      }).catch(err => console.error('Update category error:', err));
+    }
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name, description } : c)));
     toast.success('Category updated');
   };
 
   const deleteCategory = (id: string) => {
-    setCategories((prev) => {
-      const updated = prev.filter((c) => c.id !== id);
-      return updated;
-    });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/categories/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(err => console.error('Delete category error:', err));
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== id));
     toast.success('Category deleted');
   };
 
@@ -554,28 +603,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateMenuItem = (id: string, item: Partial<MenuItem>) => {
-    setMenuItems((prev) => {
-      const updated = prev.map((mi) => (mi.id === id ? { ...mi, ...item } : mi));
-      saveStorage('restro_menu_items', updated);
-      return updated;
-    });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/menu/${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          categoryId: item.categoryId,
+          name: item.name,
+          description: item.description,
+          price: item.price !== undefined ? Number(item.price) : undefined,
+          discountPrice: item.discountPrice !== undefined ? Number(item.discountPrice) : undefined,
+          isAvailable: item.isAvailable,
+          requiresKitchen: item.requiresKitchen,
+          image: item.image
+        })
+      }).then(res => res.json()).then(resData => {
+         if(!resData.success) {
+            toast.error(resData.message || 'Failed to update menu item');
+         }
+      }).catch(err => console.error('Update menu item error:', err));
+    }
+
+    setMenuItems((prev) => prev.map((mi) => (mi.id === id ? { ...mi, ...item } : mi)));
     toast.success('Menu item updated');
   };
 
   const toggleMenuItemAvailability = (id: string) => {
     setMenuItems((prev) => {
-      const updated = prev.map((mi) => (mi.id === id ? { ...mi, isAvailable: !mi.isAvailable } : mi));
-      saveStorage('restro_menu_items', updated);
-      return updated;
+      const item = prev.find(mi => mi.id === id);
+      if (item) {
+        const nextStatus = !item.isAvailable;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        if (token) {
+          fetch(`${API_URL}/menu/${id}/availability`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ isAvailable: nextStatus })
+          }).catch(err => console.error('Toggle error:', err));
+        }
+      }
+      return prev.map((mi) => (mi.id === id ? { ...mi, isAvailable: !mi.isAvailable } : mi));
     });
   };
 
   const deleteMenuItem = (id: string) => {
-    setMenuItems((prev) => {
-      const updated = prev.filter((mi) => mi.id !== id);
-      saveStorage('restro_menu_items', updated);
-      return updated;
-    });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/menu/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(err => console.error('Delete error:', err));
+    }
+    setMenuItems((prev) => prev.filter((mi) => mi.id !== id));
     toast.success('Menu item removed');
   };
 
@@ -817,3 +900,4 @@ export function useApp() {
   }
   return context;
 }
+
