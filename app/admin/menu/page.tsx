@@ -66,7 +66,7 @@ export default function MenuManagementPage() {
       name: '',
       categoryId: categories[1]?.id || 'cat_starters',
       description: '',
-      price: 250,
+      price: '' as any,
       discountPrice: undefined,
       image: '',
       isAvailable: true,

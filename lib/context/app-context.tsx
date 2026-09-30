@@ -83,16 +83,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  // Persistent Entities from localStorage
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('restro_restaurants');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return MOCK_RESTAURANTS;
-  });
+  // Cloud data
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
 
   // Auth
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -102,86 +94,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try { return JSON.parse(savedUser); } catch (e) {}
       }
     }
-    const firstRest = typeof window !== 'undefined' ? localStorage.getItem('restro_restaurants') : null;
-    if (firstRest) {
-      try {
-        const parsed = JSON.parse(firstRest);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const rest = parsed[0];
-          return {
-            id: `usr_${rest.id}`,
-            name: `${rest.ownerName} (Admin)`,
-            email: rest.email,
-            role: 'RESTAURANT_ADMIN',
-            restaurantId: rest.id,
-            restaurantName: rest.name,
-            phone: rest.phone,
-          };
-        }
-      } catch (e) {}
-    }
-    return MOCK_USERS.restroadmin;
+    return null;
   });
 
-  const [leads, setLeads] = useState<Lead[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('restro_leads');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return MOCK_LEADS;
-  });
-
-  const [categories, setCategories] = useState<Category[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('restro_categories');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return MOCK_CATEGORIES;
-  });
-
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('restro_menu_items');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return MOCK_MENU_ITEMS;
-  });
-
-  const [orders, setOrders] = useState<Order[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('restro_orders');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return INITIAL_ORDERS;
-  });
-
-  const [payments, setPayments] = useState<PaymentTransaction[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('restro_payments');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return INITIAL_PAYMENTS;
-  });
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [payments, setPayments] = useState<PaymentTransaction[]>([]);
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Helper to persist state to localStorage
+  // Helper to persist state to localStorage (Only keeping for user session/auth now)
   const saveStorage = (key: string, data: any) => {
-    if (typeof window !== 'undefined') {
+    if (key === 'user' && typeof window !== 'undefined') {
       try {
         localStorage.setItem(key, JSON.stringify(data));
       } catch (e) {}
+    }
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+    }
+    toast.info('Logged out successfully');
+  };
+
+  // Authenticated Fetch Wrapper to handle 401/403 (Suspended/Blocked)
+  const authFetch = async (url: string, options: RequestInit = {}) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) return { success: false };
+
+    const headers = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`
+    };
+
+    try {
+      const res = await fetch(url, { ...options, headers });
+      const resData = await res.json();
+
+      if (res.status === 401 || res.status === 403) {
+        toast.error(resData.message || 'Session expired or account suspended. Please log in again.');
+        logout();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return { success: false, ...resData };
+      }
+      return resData;
+    } catch (err) {
+      console.error('Fetch error:', err);
+      return { success: false };
     }
   };
 
@@ -223,10 +191,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    fetch(`${API_URL}/orders`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
+    authFetch(`${API_URL}/orders`)
       .then(resData => {
         if (resData.success && Array.isArray(resData.data)) {
           // Map backend format to frontend format
@@ -255,12 +220,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             customerPhone: dbOrder.customerPhone,
             notes: dbOrder.notes
           }));
-          
           setOrders(dbOrders);
-          saveStorage('restro_orders', dbOrders);
         }
       })
       .catch(err => console.error('Failed to fetch orders from DB:', err));
+
+    // Fetch Categories
+    authFetch(`${API_URL}/categories`)
+      .then(resData => {
+        if (resData.success && Array.isArray(resData.data)) {
+          const dbCategories = resData.data.map((c: any) => ({
+            id: c._id,
+            name: c.name,
+            description: c.description || '',
+            itemCount: c.itemCount || 0,
+            isActive: c.isActive
+          }));
+          setCategories(dbCategories);
+        }
+      })
+      .catch(err => console.error('Failed to fetch categories:', err));
+
+    // Fetch Menu Items
+    authFetch(`${API_URL}/menu`)
+      .then(resData => {
+        if (resData.success && Array.isArray(resData.data)) {
+          const dbMenuItems = resData.data.map((m: any) => ({
+            id: m._id,
+            categoryId: m.category,
+            categoryName: m.category?.name || 'Category',
+            name: m.name,
+            description: m.description || '',
+            price: m.price,
+            discountPrice: m.discountPrice,
+            image: m.imageUrl || m.image || '',
+            isAvailable: m.isAvailable !== false,
+            requiresKitchen: m.requiresKitchen !== false
+          }));
+          setMenuItems(dbMenuItems);
+        }
+      })
+      .catch(err => console.error('Failed to fetch menu items:', err));
+
   }, [currentUser?.restaurantId]);
 
   // MONGODB SYNC: Fetch real restaurants (For Super Admin & login matches)
@@ -270,10 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    fetch(`${API_URL}/restaurants`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
+    authFetch(`${API_URL}/restaurants`)
       .then(resData => {
         if (resData.success && Array.isArray(resData.data)) {
           const dbRestaurants: Restaurant[] = resData.data.map((dbRest: any) => ({
@@ -388,14 +386,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toast.success(`Logged in as ${userToSet.name}`);
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user');
-      localStorage.removeItem('accessToken');
-    }
-    toast.info('Logged out successfully');
-  };
+
 
   // Restaurant actions (Super Admin)
   const addRestaurant = (data: any): Restaurant => {
@@ -485,20 +476,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Category actions
   const addCategory = (name: string, description?: string) => {
-    const id = `cat_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
-    const newCat: Category = { id, name, description, itemCount: 0, isActive: true };
-    setCategories((prev) => {
-      const updated = [...prev, newCat];
-      saveStorage('restro_categories', updated);
-      return updated;
-    });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, description })
+      }).then(res => res.json()).then(resData => {
+        if(resData.success) {
+           const c = resData.data;
+           const newCat = { id: c._id, name: c.name, description: c.description || '', itemCount: c.itemCount || 0, isActive: c.isActive };
+           setCategories(prev => [...prev, newCat]);
+        }
+      });
+    }
     toast.success(`Category "${name}" added`);
   };
 
   const updateCategory = (id: string, name: string, description?: string) => {
     setCategories((prev) => {
       const updated = prev.map((c) => (c.id === id ? { ...c, name, description } : c));
-      saveStorage('restro_categories', updated);
       return updated;
     });
     toast.success('Category updated');
@@ -507,7 +507,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteCategory = (id: string) => {
     setCategories((prev) => {
       const updated = prev.filter((c) => c.id !== id);
-      saveStorage('restro_categories', updated);
       return updated;
     });
     toast.success('Category deleted');
@@ -515,20 +514,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Menu Item actions
   const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
-    const newId = `item_${Date.now()}`;
-    const newItem: MenuItem = { ...item, id: newId };
-    setMenuItems((prev) => {
-      const updated = [newItem, ...prev];
-      saveStorage('restro_menu_items', updated);
-      return updated;
-    });
-    setCategories((prev) => {
-      const updated = prev.map((c) =>
-        c.id === item.categoryId ? { ...c, itemCount: c.itemCount + 1 } : c
-      );
-      saveStorage('restro_categories', updated);
-      return updated;
-    });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      const formData = new FormData();
+      formData.append('name', item.name);
+      formData.append('category', item.categoryId);
+      formData.append('price', item.price.toString());
+      if (item.discountPrice) formData.append('discountPrice', item.discountPrice.toString());
+      formData.append('description', item.description || '');
+      formData.append('isAvailable', String(item.isAvailable));
+      
+      fetch(`${API_URL}/menu`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      }).then(res => res.json()).then(resData => {
+         if(resData.success) {
+            const m = resData.data;
+            const newItem: MenuItem = {
+              id: m._id, categoryId: m.category, categoryName: item.categoryName, name: m.name, description: m.description || '',
+              price: m.price, discountPrice: m.discountPrice, image: m.imageUrl || '',
+              isAvailable: m.isAvailable !== false, requiresKitchen: m.requiresKitchen !== false
+            };
+            setMenuItems(prev => [newItem, ...prev]);
+         }
+      });
+    }
+
+    setCategories((prev) => prev.map((c) => c.id === item.categoryId ? { ...c, itemCount: c.itemCount + 1 } : c));
     toast.success(`Item "${item.name}" added to menu`);
   };
 

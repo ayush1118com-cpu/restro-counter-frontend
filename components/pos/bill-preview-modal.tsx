@@ -154,7 +154,7 @@ TOTAL:       ${formatINR(order.total)}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end gap-3 pt-2 print:hidden">
           <Button variant="outline" size="md" onClick={handleDownload}>
             <Download className="w-4 h-4" /> Download Bill
           </Button>
@@ -163,6 +163,26 @@ TOTAL:       ${formatINR(order.total)}
           </Button>
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-receipt, #printable-receipt * {
+            visibility: visible;
+          }
+          #printable-receipt {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+            color: black;
+          }
+        }
+      `}} />
     </Modal>
   );
 }
