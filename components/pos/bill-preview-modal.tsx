@@ -63,28 +63,37 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
           <head>
             <title>Print Bill</title>
             <style>
-              @page { size: 80mm auto; margin: 0; }
+              @page { margin: 0; } /* 3in width, approx 6in height to fit everything in one page */
               body { 
-                font-family: monospace; 
+                font-family: 'Courier New', Courier, monospace; 
                 width: 80mm; 
                 margin: 0; 
-                padding: 15px; 
+                padding: 10px 15px; 
                 color: black; 
                 background: white; 
+                font-size: 12px;
               }
               * { box-sizing: border-box; }
               .text-center { text-align: center; }
               .text-right { text-align: right; }
               .font-bold, .font-black { font-weight: bold; }
+              .font-semibold { font-weight: 600; }
+              .font-extrabold { font-weight: 800; }
               .uppercase { text-transform: uppercase; }
+              .tracking-wider { letter-spacing: 0.05em; }
               .flex { display: flex; }
+              .items-center { align-items: center; }
               .justify-between { justify-content: space-between; }
               .border-b { border-bottom: 1px dashed #000; }
+              .border-t { border-top: 1px dashed #000; }
               .border-dashed { border-style: dashed; }
-              .border-gray-400, .border-gray-300 { border-color: #000 !important; }
+              .border-gray-400, .border-gray-300, .border-gray-200 { border-color: #000 !important; }
+              .py-1\.5 { padding-top: 6px; padding-bottom: 6px; }
               .py-2 { padding-top: 8px; padding-bottom: 8px; }
               .py-3 { padding-top: 12px; padding-bottom: 12px; }
               .pt-2 { padding-top: 8px; }
+              .pt-3 { padding-top: 12px; }
+              .pb-1 { padding-bottom: 4px; }
               .pb-2 { padding-bottom: 8px; }
               .pb-4 { padding-bottom: 16px; }
               .my-2 { margin-top: 8px; margin-bottom: 8px; }
@@ -94,11 +103,20 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
               .space-y-1 > * + * { margin-top: 4px; }
               .space-y-2 > * + * { margin-top: 8px; }
               .space-y-4 > * + * { margin-top: 16px; }
-              .text-xs { font-size: 12px; }
-              .text-sm { font-size: 14px; }
-              .text-base { font-size: 16px; }
+              .space-y-6 > * + * { margin-top: 24px; }
+              .text-xs { font-size: 11px; }
+              .text-sm { font-size: 13px; }
+              .text-base { font-size: 15px; }
+              .text-xl { font-size: 18px; }
+              .text-gray-900, .text-gray-800, .text-gray-700 { color: #000 !important; }
+              .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+              .max-w-\[140px\] { max-width: 140px; }
+              .inline-block { display: inline-block; }
+              .px-2\.5 { padding-left: 10px; padding-right: 10px; }
+              .bg-emerald-100 { background: white; border: 1px solid black; }
               p, h3 { margin: 0; }
               svg { display: none; }
+              .rounded-2xl { border-radius: 0; border: none; padding: 0; box-shadow: none; }
             </style>
           </head>
           <body>
@@ -258,6 +276,8 @@ TOTAL:       ${formatINR(order.total)}
     </Modal>
   );
 }
+
+
 
 
 
