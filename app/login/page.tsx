@@ -56,18 +56,14 @@ export default function LoginPage() {
       if (response.ok && resData.success) {
         const { user, accessToken } = resData.data;
 
-        // Enrich user with restaurant data from local state
-        const matchedRest = restaurants.find(
-          (r) =>
-            r.email.toLowerCase() === user.email?.toLowerCase() ||
-            r.email.toLowerCase() === data.email.toLowerCase()
-        ) || (restaurants.length > 0 ? restaurants[0] : null);
+        // Use restaurant info from backend response directly
+        const backendRestaurant = user.restaurant;
 
         const enrichedUser = {
           ...user,
-          restaurantId: matchedRest?.id || user.restaurantId,
-          restaurantName: matchedRest?.name || user.restaurantName,
-          phone: matchedRest?.phone || user.phone,
+          restaurantId: backendRestaurant?._id || user.restaurantId,
+          restaurantName: backendRestaurant?.name || user.restaurantName || '',
+          phone: user.phone || '',
         };
 
         // Store tokens & user in localStorage

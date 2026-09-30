@@ -31,16 +31,31 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, logout, orders, restaurants } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Role-based route protection
+  React.useEffect(() => {
+    if (!currentUser) return;
+    
+    // Kitchen Staff can ONLY access /admin/kitchen
+    if (currentUser.role === 'KITCHEN_STAFF' && pathname !== '/admin/kitchen') {
+      router.replace('/admin/kitchen');
+      return;
+    }
+    
+    // Restaurant Admin should NOT access kitchen page directly (they use sidebar)
+    // Super Admin should NOT land on admin pages
+    if (currentUser.role === 'SUPER_ADMIN' && pathname.startsWith('/admin')) {
+      router.replace('/super-admin');
+      return;
+    }
+  }, [currentUser, pathname, router]);
+
   // Dynamically resolve active restaurant for logged in user
   const activeRest =
     restaurants.find((r) => r.id === currentUser?.restaurantId) ||
     restaurants.find((r) => r.email === currentUser?.email) ||
-    restaurants.find((r) => r.phone === currentUser?.phone) ||
     (restaurants.length > 0 ? restaurants[0] : null);
 
-  const activeRestaurantName = activeRest?.name
-    || (currentUser?.restaurantName && !['Spice Garden Restaurant', 'Spice Garden', 'Counter Restaurant Outlet', 'Restro Counter Outlet'].includes(currentUser.restaurantName) ? currentUser.restaurantName : null)
-    || (currentUser?.name ? `${currentUser.name.replace(/\s*\(Counter Admin\)/i, '').replace(/\s*\(Admin\)/i, '').trim()}'s Outlet` : 'Restro Counter Outlet');
+  const activeRestaurantName = currentUser?.restaurantName || activeRest?.name || 'Restro Counter';
 
   const pendingCount = orders.filter((o) => o.status === 'NEW' || o.status === 'PREPARING').length;
 
