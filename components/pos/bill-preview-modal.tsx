@@ -63,12 +63,13 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
           <head>
             <title>Print Bill</title>
             <style>
-              @page { margin: 0; } /* 3in width, approx 6in height to fit everything in one page */
+              @page { margin: 2mm; } 
               body { 
                 font-family: 'Courier New', Courier, monospace; 
-                width: 80mm; 
-                margin: 0; 
-                padding: 10px 15px; 
+                width: 100%; 
+                max-width: 76mm; 
+                margin: 0 auto; 
+                padding: 0 4px; 
                 color: black; 
                 background: white; 
                 font-size: 12px;
@@ -84,9 +85,9 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
               .flex { display: flex; }
               .items-center { align-items: center; }
               .justify-between { justify-content: space-between; }
-              .border-b { border-bottom: 1px dashed #000; }
-              .border-t { border-top: 1px dashed #000; }
-              .border-dashed { border-style: dashed; }
+              .border-b { border: none !important; border-bottom: 1px dashed #000 !important; }
+              .border-t { border: none !important; border-top: 1px dashed #000 !important; }
+              .border-dashed { border-style: none !important; }
               .border-gray-400, .border-gray-300, .border-gray-200 { border-color: #000 !important; }
               .py-1\.5 { padding-top: 6px; padding-bottom: 6px; }
               .py-2 { padding-top: 8px; padding-bottom: 8px; }
@@ -112,11 +113,11 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
               .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
               .max-w-\[140px\] { max-width: 140px; }
               .inline-block { display: inline-block; }
-              .px-2\.5 { padding-left: 10px; padding-right: 10px; }
-              .bg-emerald-100 { background: white; border: 1px solid black; }
+              .px-2\.5 { padding-left: 8px; padding-right: 8px; }
+              .bg-emerald-100 { background: white; border: 1px solid black !important; }
               p, h3 { margin: 0; }
               svg { display: none; }
-              .rounded-2xl { border-radius: 0; border: none; padding: 0; box-shadow: none; }
+              .rounded-2xl { border-radius: 0; border: none !important; padding: 0 !important; box-shadow: none; }
             </style>
           </head>
           <body>
@@ -276,6 +277,7 @@ TOTAL:       ${formatINR(order.total)}
     </Modal>
   );
 }
+
 
 
 

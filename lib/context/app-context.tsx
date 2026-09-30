@@ -116,9 +116,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Helper to persist state to localStorage (Only keeping for user session/auth now)
+  // Helper to persist state to localStorage (caching for optimistic UI)
   const saveStorage = (key: string, data: any) => {
-    if (key === 'user' && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(key, JSON.stringify(data));
       } catch (e) {}
@@ -265,7 +265,7 @@ saveStorage('restro_categories', dbCategories);
               description: m.description || '',
               price: m.price,
               discountPrice: m.discountPrice,
-              image: m.imageUrl || m.image || '',
+              image: (typeof m.image === 'object' && m.image?.secure_url) ? m.image.secure_url : (m.imageUrl || m.image || ''),
               isAvailable: m.isAvailable !== false,
               requiresKitchen: m.requiresKitchen !== false
             }));
