@@ -115,9 +115,9 @@ export default function POSScreenPage() {
       </header>
 
       {/* 2. MAIN POS WORKSPACE (CENTER MENU + RIGHT CART) */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
         {/* CENTER MENU BROWSING AREA */}
-        <div className="flex-1 flex flex-col min-w-0 p-5 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 p-3 lg:p-5 overflow-hidden">
           {/* TOP TOOLBAR: SEARCH & CATEGORY PILLS */}
           <div className="space-y-3 shrink-0 mb-4">
             {/* SEARCH INPUT */}
@@ -170,7 +170,7 @@ export default function POSScreenPage() {
                 <p className="text-xs text-slate-400">Try changing your search query or selected category.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 pb-4">
                 {filteredItems.map((item) => (
                   <div
                     key={item.id}
@@ -249,8 +249,8 @@ export default function POSScreenPage() {
           </div>
         </div>
 
-        {/* RIGHT STICKY CURRENT ORDER / CART PANEL (Width 400px) */}
-        <div className="w-[400px] bg-white border-l border-slate-200/90 flex flex-col justify-between shrink-0 shadow-lg">
+        {/* RIGHT STICKY CURRENT ORDER / CART PANEL */}
+        <div className="h-[45vh] lg:h-auto w-full lg:w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200/90 flex flex-col justify-between shrink-0 shadow-lg">
           {/* CART HEADER */}
           <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div>
