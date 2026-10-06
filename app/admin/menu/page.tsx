@@ -16,6 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { MOCK_MENU_ITEMS } from '@/lib/mock/initial-data';
 
 const menuItemSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -52,6 +53,7 @@ export default function MenuManagementPage() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
@@ -59,6 +61,30 @@ export default function MenuManagementPage() {
       isAvailable: true,
     },
   });
+
+  const watchName = watch('name');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const suggestions = React.useMemo(() => {
+    if (!watchName || watchName.length < 2) return [];
+    const lowerSearch = watchName.toLowerCase();
+    return MOCK_MENU_ITEMS.filter(item => 
+      item.name.toLowerCase().includes(lowerSearch) && !editingItem
+    );
+  }, [watchName, editingItem]);
+
+  const handleSelectSuggestion = (item: MenuItem) => {
+    setValue('name', item.name);
+    setValue('categoryId', item.categoryId);
+    setValue('description', item.description);
+    setValue('price', item.price);
+    if (item.image) {
+      setValue('image', item.image);
+    }
+    setValue('requiresKitchen', item.requiresKitchen);
+    setValue('isAvailable', item.isAvailable);
+    setShowSuggestions(false);
+  };
 
   const handleOpenAddModal = () => {
     setEditingItem(null);
@@ -238,7 +264,33 @@ export default function MenuManagementPage() {
         maxWidth="md"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="Item Name *" placeholder="e.g. Kadhai Paneer" {...register('name')} error={errors.name?.message} />
+          <div className="relative">
+            <Input 
+               label="Item Name *" 
+               placeholder="e.g. Kadhai Paneer" 
+               {...register('name')} 
+               onFocus={() => setShowSuggestions(true)}
+               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+               error={errors.name?.message} 
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {suggestions.map(suggestion => (
+                  <div
+                    key={suggestion.id}
+                    className="px-4 py-2 hover:bg-amber-50 cursor-pointer flex justify-between items-center"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{suggestion.name}</p>
+                      <p className="text-xs text-gray-500">{suggestion.categoryName}</p>
+                    </div>
+                    <span className="text-sm font-bold text-gray-700">₹{suggestion.price}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Select
             label="Category *"
