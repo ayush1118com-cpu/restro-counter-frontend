@@ -323,42 +323,52 @@ export default function KitchenDisplayScreenPage() {
 
   return (
     <div className="min-h-screen bg-[#050817] text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950">
-      {/* 1. STICKY HEADER (Height ~72px) */}
-      <header className="sticky top-0 z-50 h-[72px] bg-[#0B1224]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between shadow-2xl">
+      {/* 1. STICKY HEADER */}
+      <header className="sticky top-0 z-50 min-h-[72px] py-3 md:py-0 bg-[#0B1224]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 shadow-2xl">
         {/* LEFT BRANDING */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-slate-950 flex items-center justify-center shadow-md shadow-amber-500/20">
-            <ChefHat className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-[17px] font-bold tracking-tight text-white flex items-center gap-2 leading-none">
-              KITCHEN DISPLAY
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-slate-400 font-medium">Kitchen Station</span>
-              <span className="text-slate-600">•</span>
-              {/* SOCKET STATUS PILL */}
-              {socketStatus === 'connected' && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Connected
-                </span>
-              )}
-              {socketStatus === 'reconnecting' && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-950/80 text-amber-400 border border-amber-800/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" /> Reconnecting...
-                </span>
-              )}
-              {socketStatus === 'disconnected' && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-950/80 text-rose-400 border border-rose-800/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disconnected
-                </span>
-              )}
+        <div className="flex items-center justify-between w-full lg:w-auto">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-slate-950 flex flex-shrink-0 items-center justify-center shadow-md shadow-amber-500/20">
+              <ChefHat className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-[17px] font-bold tracking-tight text-white flex items-center gap-2 leading-none">
+                KITCHEN DISPLAY
+              </h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-xs text-slate-400 font-medium">Kitchen Station</span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                {/* SOCKET STATUS PILL */}
+                {socketStatus === 'connected' && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Connected
+                  </span>
+                )}
+                {socketStatus === 'reconnecting' && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-950/80 text-amber-400 border border-amber-800/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" /> Reconnecting...
+                  </span>
+                )}
+                {socketStatus === 'disconnected' && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-950/80 text-rose-400 border border-rose-800/60">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disconnected
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+          
+          {/* SHOW LOGOUT ON MOBILE TOP RIGHT */}
+          <button
+            onClick={handleKitchenLogout}
+            className="lg:hidden px-2.5 py-1.5 rounded-xl bg-rose-950/40 text-rose-400 border border-rose-800/40 text-xs font-bold hover:bg-rose-900/60 transition-all flex items-center gap-1.5"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
 
         {/* TOP COMPACT STATS SUMMARY */}
-        <div className="hidden md:flex items-center gap-4 bg-[#0F172A]/80 border border-slate-800/80 px-4 py-1.5 rounded-xl">
+        <div className="hidden lg:flex items-center gap-4 bg-[#0F172A]/80 border border-slate-800/80 px-4 py-1.5 rounded-xl">
           <div className="text-center px-2">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE</p>
             <p className="text-base font-bold text-amber-400 leading-tight">
@@ -378,9 +388,9 @@ export default function KitchenDisplayScreenPage() {
         </div>
 
         {/* RIGHT ACTION CONTROLS */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0 no-scrollbar">
           {/* VIEW MODE TOGGLE */}
-          <div className="bg-[#0F172A] p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+          <div className="bg-[#0F172A] p-1 rounded-xl border border-slate-800 flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => setViewMode('ACTIVE')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -409,43 +419,43 @@ export default function KitchenDisplayScreenPage() {
               setIsMuted(!isMuted);
               if (isMuted) testAudioChime();
             }}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex flex-shrink-0 items-center gap-1.5 transition-all ${
               isMuted
                 ? 'bg-slate-900 text-slate-500 border-slate-800'
                 : 'bg-[#0F172A] text-amber-400 border-amber-500/30 hover:bg-slate-800'
             }`}
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isMuted ? 'Sound OFF' : 'Sound ON'}</span>
+            <span>{isMuted ? 'Sound OFF' : 'Sound ON'}</span>
           </button>
 
           {/* FULLSCREEN API TOGGLE */}
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-xl bg-[#0F172A] text-slate-300 border border-slate-800 hover:text-white hover:bg-slate-800 transition-all"
+            className="p-2 flex-shrink-0 rounded-xl bg-[#0F172A] text-slate-300 border border-slate-800 hover:text-white hover:bg-slate-800 transition-all"
             title="Toggle Fullscreen Mode"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
-          {/* LOGOUT STATION */}
+          {/* LOGOUT STATION (Hidden on mobile, shown in top header instead) */}
           <button
             onClick={handleKitchenLogout}
-            className="px-3 py-1.5 rounded-xl bg-rose-950/40 text-rose-400 border border-rose-800/40 text-xs font-bold hover:bg-rose-900/60 transition-all flex items-center gap-1.5"
+            className="hidden lg:flex px-3 py-1.5 flex-shrink-0 rounded-xl bg-rose-950/40 text-rose-400 border border-rose-800/40 text-xs font-bold hover:bg-rose-900/60 transition-all items-center gap-1.5"
           >
-            <LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Logout</span>
+            <LogOut className="w-3.5 h-3.5" /> <span>Logout</span>
           </button>
         </div>
       </header>
 
       {/* 2. MAIN KITCHEN BOARD */}
-      <main className="flex-1 p-4 sm:p-6 overflow-hidden flex flex-col">
+      <main className="flex-1 p-4 sm:p-6 overflow-y-auto lg:overflow-hidden flex flex-col">
         {viewMode === 'ACTIVE' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 flex-1 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
             {/* =================================================== */}
             {/* COLUMN 1: NEW ORDERS */}
             {/* =================================================== */}
-            <div className="bg-[#0B1224] rounded-2xl border border-slate-800/90 flex flex-col max-h-[calc(100vh-120px)] shadow-xl overflow-hidden">
+            <div className="bg-[#0B1224] rounded-2xl border border-slate-800/90 flex flex-col h-[60vh] lg:h-auto lg:max-h-[calc(100vh-120px)] shadow-xl overflow-hidden">
               {/* Sticky Column Header */}
               <div className="p-4 border-b border-slate-800/80 bg-[#0F172A]/90 backdrop-blur-xs flex items-center justify-between">
                 <div>
@@ -498,6 +508,10 @@ export default function KitchenDisplayScreenPage() {
                                 👤 {order.customerName || 'Customer'} {order.customerPhone ? `(${order.customerPhone})` : ''}
                               </p>
                             )}
+                            <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </p>
                           </div>
                           <span
                             className={`text-xs font-medium px-2.5 py-1 rounded-lg border flex items-center gap-1 ${
@@ -548,7 +562,7 @@ export default function KitchenDisplayScreenPage() {
             {/* =================================================== */}
             {/* COLUMN 2: PREPARING */}
             {/* =================================================== */}
-            <div className="bg-[#0B1224] rounded-2xl border border-slate-800/90 flex flex-col max-h-[calc(100vh-120px)] shadow-xl overflow-hidden">
+            <div className="bg-[#0B1224] rounded-2xl border border-slate-800/90 flex flex-col h-[60vh] lg:h-auto lg:max-h-[calc(100vh-120px)] shadow-xl overflow-hidden">
               {/* Sticky Column Header */}
               <div className="p-4 border-b border-slate-800/80 bg-[#0F172A]/90 backdrop-blur-xs flex items-center justify-between">
                 <div>
@@ -592,6 +606,10 @@ export default function KitchenDisplayScreenPage() {
                                 👤 {order.customerName || 'Customer'} {order.customerPhone ? `(${order.customerPhone})` : ''}
                               </p>
                             )}
+                            <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </p>
                           </div>
 
                           {/* Preparing Stopwatch Timer */}
@@ -634,7 +652,7 @@ export default function KitchenDisplayScreenPage() {
             {/* =================================================== */}
             {/* COLUMN 3: READY FOR PICKUP */}
             {/* =================================================== */}
-            <div className="bg-[#0B1224] rounded-2xl border border-slate-800/90 flex flex-col max-h-[calc(100vh-120px)] shadow-xl overflow-hidden">
+            <div className="bg-[#0B1224] rounded-2xl border border-slate-800/90 flex flex-col h-[60vh] lg:h-auto lg:max-h-[calc(100vh-120px)] shadow-xl overflow-hidden">
               {/* Sticky Column Header */}
               <div className="p-4 border-b border-slate-800/80 bg-[#0F172A]/90 backdrop-blur-xs flex items-center justify-between">
                 <div>
@@ -676,6 +694,10 @@ export default function KitchenDisplayScreenPage() {
                                 👤 {order.customerName || 'Customer'} {order.customerPhone ? `(${order.customerPhone})` : ''}
                               </p>
                             )}
+                            <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </p>
                           </div>
                           <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 flex items-center gap-1">
                             ✓ READY
@@ -766,7 +788,7 @@ export default function KitchenDisplayScreenPage() {
 
                     <div className="pt-2 border-t border-slate-800 flex justify-between text-[11px] text-slate-500 font-medium">
                       <span>Date: {new Date(order.createdAt).toLocaleDateString()}</span>
-                      <span>Time: {new Date(order.createdAt).toLocaleTimeString()}</span>
+                      <span>Order Time: {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                     </div>
                   </div>
                 ))

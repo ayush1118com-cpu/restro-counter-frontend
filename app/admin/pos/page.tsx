@@ -45,6 +45,7 @@ export default function POSScreenPage() {
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [lastCreatedOrder, setLastCreatedOrder] = useState<Order | null>(null);
   const [isKitchenConnected, setIsKitchenConnected] = useState(false);
+  const [isCartOpenMobile, setIsCartOpenMobile] = useState(false);
 
   // Monitor Socket.IO connection status to Kitchen
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function POSScreenPage() {
 
   const handlePaymentSuccess = (order: Order) => {
     setLastCreatedOrder(order);
+    setIsCartOpenMobile(false);
   };
 
   const handlePrintBillFromPayment = (order: Order) => {
@@ -247,24 +249,49 @@ export default function POSScreenPage() {
               </div>
             )}
           </div>
+
+          {/* MOBILE VIEW CART FLOATING BUTTON */}
+          <div className="lg:hidden mt-3 shrink-0 relative z-10">
+            <button
+              onClick={() => setIsCartOpenMobile(true)}
+              className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-between px-4 active:scale-95 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5" />
+                <span>View Order</span>
+              </div>
+              <div className="bg-amber-500 text-slate-900 px-2.5 py-1 rounded-md text-[13px]">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} items • {formatINR(cartTotal)}
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* RIGHT STICKY CURRENT ORDER / CART PANEL */}
-        <div className="h-[45vh] lg:h-auto w-full lg:w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200/90 flex flex-col justify-between shrink-0 shadow-lg">
+        <div className={`${isCartOpenMobile ? 'fixed inset-0 z-50 flex' : 'hidden'} lg:static lg:flex lg:h-auto w-full lg:w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200/90 flex-col justify-between shrink-0 shadow-2xl lg:shadow-lg`}>
           {/* CART HEADER */}
-          <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between shrink-0">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">CURRENT ORDER</span>
               <h2 className="text-lg font-bold text-slate-900 leading-tight">Order #{nextOrderNumber}</h2>
             </div>
-            {cart.length > 0 && (
+            <div className="flex items-center gap-2">
+              {cart.length > 0 && (
+                <button
+                  onClick={clearCart}
+                  className="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clear</span>
+                </button>
+              )}
+              {/* MOBILE CLOSE BUTTON */}
               <button
-                onClick={clearCart}
-                className="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                onClick={() => setIsCartOpenMobile(false)}
+                className="lg:hidden text-xs font-bold text-slate-700 hover:bg-slate-200 bg-slate-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Clear
+                Close
               </button>
-            )}
+            </div>
           </div>
 
           {/* CART ITEMS SCROLL AREA */}

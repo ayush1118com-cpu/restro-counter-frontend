@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
 import { Category } from '@/types';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { MOCK_CATEGORIES } from '@/lib/mock/initial-data';
 
 export default function CategoryManagementPage() {
   const { categories, addCategory, updateCategory, deleteCategory } = useApp();
@@ -17,6 +18,21 @@ export default function CategoryManagementPage() {
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showCatSuggestions, setShowCatSuggestions] = useState(false);
+
+  const catSuggestions = React.useMemo(() => {
+    if (!catName || catName.length < 2) return [];
+    const lowerSearch = catName.toLowerCase();
+    return MOCK_CATEGORIES.filter(c => 
+      c.id !== 'cat_all' && c.name.toLowerCase().includes(lowerSearch) && !editingCat
+    );
+  }, [catName, editingCat]);
+
+  const handleSelectCatSuggestion = (cat: Category) => {
+    setCatName(cat.name);
+    setCatDesc(cat.description || '');
+    setShowCatSuggestions(false);
+  };
 
   const displayCategories = categories.filter((c) => c.id !== 'cat_all');
 
@@ -91,12 +107,32 @@ export default function CategoryManagementPage() {
       {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingCat ? 'Edit Category' : 'Add Category'} maxWidth="sm">
         <form onSubmit={handleSave} className="space-y-4">
-          <Input
-            label="Category Name *"
-            placeholder="e.g. Starters"
-            value={catName}
-            onChange={(e) => setCatName(e.target.value)}
-          />
+          <div className="relative">
+            <Input
+              label="Category Name *"
+              placeholder="e.g. Starters"
+              value={catName}
+              onChange={(e) => setCatName(e.target.value)}
+              onFocus={() => setShowCatSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowCatSuggestions(false), 200)}
+            />
+            {showCatSuggestions && catSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {catSuggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    className="px-4 py-2 hover:bg-amber-50 cursor-pointer"
+                    onClick={() => handleSelectCatSuggestion(suggestion)}
+                  >
+                    <p className="text-sm font-medium text-gray-900">{suggestion.name}</p>
+                    {suggestion.description && (
+                      <p className="text-[11px] text-gray-500 line-clamp-1">{suggestion.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <Input
             label="Description"
             placeholder="e.g. Appetizers and quick bites"
