@@ -96,7 +96,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80')] bg-cover bg-center bg-fixed flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[100dvh] bg-[url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80')] bg-cover bg-center bg-fixed flex flex-col justify-start sm:justify-center pt-16 pb-32 sm:py-12 px-4 sm:px-6 lg:px-8 relative overflow-y-auto">
       <div className="absolute inset-0 bg-gray-50/70 backdrop-blur-md z-0"></div>
       
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 relative z-10">
@@ -106,45 +106,45 @@ export default function LoginPage() {
           </div>
         </Link>
         <h2 className="text-3xl font-black text-gray-900 tracking-tight">Restro Counter</h2>
-        <p className="text-sm text-gray-600 font-medium">Sign in to your restaurant POS, Kitchen KDS, or Management portal</p>
+        <p className="text-sm text-gray-600 font-medium px-2">Sign in to your restaurant POS, Kitchen KDS, or Management portal</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-white/95 backdrop-blur-xl py-8 px-6 shadow-xl shadow-black/5 border border-white/60 rounded-3xl sm:px-10 space-y-6">
+        <div className="bg-white/95 backdrop-blur-xl py-8 px-5 shadow-xl shadow-black/5 border border-white/60 rounded-3xl sm:px-10 space-y-6">
           {/* Quick Demo Role Selector Tabs */}
-          <div className="bg-gray-100 p-1.5 rounded-2xl flex items-center gap-1 text-[11px] font-semibold border border-gray-200/50">
+          <div className="bg-gray-100 p-1.5 rounded-2xl flex flex-wrap sm:flex-nowrap items-center gap-1 text-[11px] font-semibold border border-gray-200/50">
             <button
               type="button"
               onClick={() => setRoleDemo('RESTAURANT_ADMIN')}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 min-w-[30%] py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                 selectedRoleDemo === 'RESTAURANT_ADMIN'
                   ? 'bg-white text-gray-900 font-bold shadow-sm ring-1 ring-gray-200'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              <Store className="w-3.5 h-3.5" /> Admin POS
+              <Store className="w-3.5 h-3.5 hidden sm:block" /> Admin POS
             </button>
             <button
               type="button"
               onClick={() => setRoleDemo('KITCHEN_STAFF')}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 min-w-[30%] py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                 selectedRoleDemo === 'KITCHEN_STAFF'
                   ? 'bg-white text-gray-900 font-bold shadow-sm ring-1 ring-gray-200'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              <Flame className="w-3.5 h-3.5" /> Kitchen KDS
+              <Flame className="w-3.5 h-3.5 hidden sm:block" /> Kitchen KDS
             </button>
             <button
               type="button"
               onClick={() => setRoleDemo('SUPER_ADMIN')}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 min-w-[30%] py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
                 selectedRoleDemo === 'SUPER_ADMIN'
                   ? 'bg-white text-gray-900 font-bold shadow-sm ring-1 ring-gray-200'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              <Shield className="w-3.5 h-3.5" /> Super Admin
+              <Shield className="w-3.5 h-3.5 hidden sm:block" /> Super Admin
             </button>
           </div>
 
