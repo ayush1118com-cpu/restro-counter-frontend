@@ -62,6 +62,7 @@ export default function MenuManagementPage() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
