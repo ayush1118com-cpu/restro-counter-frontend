@@ -7,7 +7,7 @@ import { Order } from '@/types';
 import { formatINR, formatDate } from '@/lib/utils';
 import { Printer, Download, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
-
+// iosfoeiy
 export interface BillPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
