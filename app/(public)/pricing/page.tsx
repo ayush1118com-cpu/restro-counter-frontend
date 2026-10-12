@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { CitySelect } from '@/components/ui/city-select';
 import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
 
@@ -95,6 +96,11 @@ export default function PricingPage() {
     e.preventDefault();
     if (!restaurantName.trim() || !ownerName.trim() || !phone.trim() || !email.trim()) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (phone.trim().length !== 10) {
+      toast.error('Mobile number must be exactly 10 digits');
       return;
     }
 
@@ -310,9 +316,10 @@ export default function PricingPage() {
               <Input
                 label="Mobile Number *"
                 type="tel"
-                placeholder="e.g. 9876543210"
+                placeholder="10-digit mobile number"
+                maxLength={10}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 required
               />
               <Input
@@ -326,11 +333,12 @@ export default function PricingPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input
+              <CitySelect
                 label="City *"
-                placeholder="e.g. Jaipur"
+                placeholder="Select or type city"
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
+                onChange={setCity}
+                required
               />
               <Select
                 label="Daily Orders"

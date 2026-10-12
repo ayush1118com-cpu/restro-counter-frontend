@@ -9,6 +9,7 @@ import { ArrowLeft, Building2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { CitySelect } from '@/components/ui/city-select';
 import { useApp } from '@/lib/context/app-context';
 import { RestaurantStatus } from '@/types';
 import Link from 'next/link';
@@ -17,7 +18,7 @@ const restaurantSchema = z.object({
   name: z.string().min(2, 'Restaurant name is required'),
   ownerName: z.string().min(2, 'Owner name is required'),
   email: z.string().email('Valid email is required'),
-  phone: z.string().min(10, 'Valid 10-digit phone number is required'),
+  phone: z.string().regex(/^\d{10}$/, 'Valid 10-digit phone number is required'),
   address: z.string().min(5, 'Address is required'),
   city: z.string().min(2, 'City is required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -34,14 +35,17 @@ export default function AddRestaurantPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RestaurantFormData>({
     resolver: zodResolver(restaurantSchema),
     defaultValues: {
       status: 'ACTIVE',
-      city: 'New Delhi',
+      city: 'Jaipur',
     },
   });
+
+  const cityValue = watch('city');
 
   const onSubmit = async (data: RestaurantFormData) => {
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -89,8 +93,14 @@ export default function AddRestaurantPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Phone Number *"
-            placeholder="e.g. 9876543210"
-            {...register('phone')}
+            type="tel"
+            placeholder="10-digit mobile number"
+            maxLength={10}
+            {...register('phone', {
+              onChange: (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+              },
+            })}
             error={errors.phone?.message}
           />
           <Input
@@ -110,11 +120,13 @@ export default function AddRestaurantPage() {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Input
+          <CitySelect
             label="City *"
-            placeholder="e.g. Chandigarh"
-            {...register('city')}
+            placeholder="Select or type city"
+            value={cityValue || ''}
+            onChange={(val) => setValue('city', val, { shouldValidate: true })}
             error={errors.city?.message}
+            required
           />
           <Input
             label="Counter Manager Password *"

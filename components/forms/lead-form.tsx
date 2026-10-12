@@ -8,13 +8,14 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { CitySelect } from '@/components/ui/city-select';
 import { useApp } from '@/lib/context/app-context';
 import { CheckCircle2, Sparkles, Send } from 'lucide-react';
 
 const leadSchema = z.object({
   restaurantName: z.string().min(2, 'Restaurant name is required'),
   ownerName: z.string().min(2, 'Owner name is required'),
-  phone: z.string().min(10, 'Valid 10-digit phone number is required'),
+  phone: z.string().regex(/^\d{10}$/, 'Must be a valid 10-digit mobile number'),
   email: z.string().email('Valid email address is required'),
   city: z.string().min(2, 'City is required'),
   approxOrdersPerDay: z.string().min(1, 'Please select approximate orders per day'),
@@ -33,12 +34,16 @@ export function LeadForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
+    watch,
   } = useForm<LeadFormData>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
       approxOrdersPerDay: '50-150',
     },
   });
+
+  const cityValue = watch('city');
 
   const onSubmit = async (data: LeadFormData) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -109,8 +114,14 @@ export function LeadForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input
           label="Phone Number *"
-          placeholder="e.g. 9876543210"
-          {...register('phone')}
+          type="tel"
+          placeholder="10-digit mobile number"
+          maxLength={10}
+          {...register('phone', {
+            onChange: (e) => {
+              e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+            },
+          })}
           error={errors.phone?.message}
         />
         <Input
@@ -123,11 +134,13 @@ export function LeadForm() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
+        <CitySelect
           label="City *"
-          placeholder="e.g. New Delhi"
-          {...register('city')}
+          placeholder="Select or type city (e.g. New Delhi)"
+          value={cityValue || ''}
+          onChange={(val) => setValue('city', val, { shouldValidate: true })}
           error={errors.city?.message}
+          required
         />
         <Select
           label="Approx. Orders Per Day *"

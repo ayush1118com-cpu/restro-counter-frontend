@@ -48,6 +48,11 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
       return;
     }
 
+    if (customerPhone.trim() && customerPhone.trim().length !== 10) {
+      toast.error('Mobile number must be exactly 10 digits');
+      return;
+    }
+
     if (numPaid < 0) {
       toast.error('Paid amount cannot be negative');
       return;
@@ -168,13 +173,14 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-800 mb-1">
-                Mobile Number <span className="text-gray-400 font-normal">(Optional)</span>
+                Mobile Number <span className="text-gray-400 font-normal">(10 digits)</span>
               </label>
               <input
                 type="tel"
                 placeholder="e.g. 9876543210"
+                maxLength={10}
                 value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold placeholder:text-gray-400"
               />
             </div>
