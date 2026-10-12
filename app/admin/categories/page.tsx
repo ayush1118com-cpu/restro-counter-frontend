@@ -23,12 +23,13 @@ export default function CategoryManagementPage() {
   const catSuggestions = React.useMemo(() => {
     if (!catName || catName.length < 2) return [];
     const lowerSearch = catName.toLowerCase();
-    return MOCK_CATEGORIES.filter(c => 
-      c.id !== 'cat_all' && c.name.toLowerCase().includes(lowerSearch) && !editingCat
+    return DEFAULT_PRESET_CATEGORIES.filter(
+      (c: { name: string; description: string }) =>
+        c.name.toLowerCase().includes(lowerSearch) && !editingCat
     );
   }, [catName, editingCat]);
 
-  const handleSelectCatSuggestion = (cat: Category) => {
+  const handleSelectCatSuggestion = (cat: { name: string; description?: string }) => {
     setCatName(cat.name);
     setCatDesc(cat.description || '');
     setShowCatSuggestions(false);
@@ -151,7 +152,7 @@ export default function CategoryManagementPage() {
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
                 {catSuggestions.map((suggestion) => (
                   <div
-                    key={suggestion.id}
+                    key={suggestion.name}
                     className="px-4 py-2 hover:bg-amber-50 cursor-pointer"
                     onClick={() => handleSelectCatSuggestion(suggestion)}
                   >
