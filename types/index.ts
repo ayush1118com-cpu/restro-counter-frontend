@@ -66,7 +66,7 @@ export interface MenuItem {
 }
 
 export type PaymentMethod = 'CASH' | 'UPI' | 'CARD';
-export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'PARTIALLY_PAID' | 'REFUNDED';
 
 export type OrderStatus = 'NEW' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
 
@@ -96,6 +96,8 @@ export interface Order {
   customerName?: string;
   customerPhone?: string;
   notes?: string;
+  paidAmount?: number;
+  dueAmount?: number;
 }
 
 export interface PaymentTransaction {
@@ -106,6 +108,28 @@ export interface PaymentTransaction {
   method: PaymentMethod;
   status: 'SUCCESS' | 'FAILED' | 'PENDING';
   createdAt: string;
+}
+
+export interface KhataTransaction {
+  id: string;
+  orderId?: string;
+  orderNumber?: string;
+  type: 'DUE_ADDED' | 'PAYMENT_RECEIVED';
+  amount: number;
+  paymentMethod?: PaymentMethod;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface KhataAccount {
+  id: string;
+  customerName: string;
+  customerPhone?: string;
+  totalDue: number;
+  totalPaid: number;
+  ordersCount: number;
+  lastUpdated: string;
+  transactions: KhataTransaction[];
 }
 
 export interface SuperAdminDashboardStats {

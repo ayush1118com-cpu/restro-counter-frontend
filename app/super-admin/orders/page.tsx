@@ -13,7 +13,7 @@ export default function GlobalOrdersPage() {
   const [search, setSearch] = useState('');
 
   const filtered = orders.filter((o) =>
-    o.orderNumber.includes(search) ||
+    String(o.orderNumber || '').includes(search) ||
     o.items.some((i) => i.name.toLowerCase().includes(search.toLowerCase()))
   );
 

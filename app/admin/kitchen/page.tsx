@@ -23,6 +23,7 @@ import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
 import { io, Socket } from 'socket.io-client';
 import { API_URL, SOCKET_URL } from '@/lib/config';
+import { formatTime } from '@/lib/utils';
 
 export default function KitchenDisplayScreenPage() {
   const router = useRouter();
@@ -332,10 +333,10 @@ export default function KitchenDisplayScreenPage() {
           </div>
           <div>
             <h1 className="text-[17px] font-bold tracking-tight text-white flex items-center gap-2 leading-none">
-              KITCHEN DISPLAY
+              ServDesk KDS
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-slate-400 font-medium">Kitchen Station</span>
+              <span className="text-[11px] text-amber-400 font-bold">Powered by Alvora Tech Solution</span>
               <span className="text-slate-600">•</span>
               {/* SOCKET STATUS PILL */}
               {socketStatus === 'connected' && (
@@ -490,9 +491,14 @@ export default function KitchenDisplayScreenPage() {
                         {/* Order Header */}
                         <div className="flex items-start justify-between border-b border-slate-800/80 pb-2.5">
                           <div>
-                            <span className="text-[19px] font-bold text-white tracking-tight">
-                              #{order.orderNumber}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[19px] font-bold text-white tracking-tight">
+                                #{order.orderNumber}
+                              </span>
+                              <span className="text-[11px] font-semibold text-slate-300 bg-slate-900/90 border border-slate-700/60 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                <Clock className="w-3 h-3 text-amber-400" /> {formatTime(order.createdAt)}
+                              </span>
+                            </div>
                             {(order.customerName || order.customerPhone) && (
                               <p className="text-xs font-medium text-amber-300 mt-0.5">
                                 👤 {order.customerName || 'Customer'} {order.customerPhone ? `(${order.customerPhone})` : ''}
@@ -515,13 +521,21 @@ export default function KitchenDisplayScreenPage() {
                         {/* Items List */}
                         <div className="space-y-2 py-1">
                           {order.items.map((item: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-[15px]">
-                              <span className="font-semibold text-slate-100 flex items-center gap-2">
-                                <span className="text-amber-400 font-bold text-base w-6 text-right">
-                                  {item.quantity}×
+                            <div key={idx} className="space-y-1 text-[15px]">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold text-slate-100 flex items-center gap-2">
+                                  <span className="text-amber-400 font-bold text-base w-6 text-right">
+                                    {item.quantity}×
+                                  </span>
+                                  {item.name}
                                 </span>
-                                {item.name}
-                              </span>
+                              </div>
+                              {item.notes && (
+                                <div className="ml-8 px-2 py-0.5 bg-amber-950/90 border border-amber-500/80 text-amber-300 font-bold text-xs rounded-lg inline-flex items-center gap-1 shadow-sm">
+                                  <span>📝 Note:</span>
+                                  <span className="underline decoration-amber-400">{item.notes}</span>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -584,9 +598,14 @@ export default function KitchenDisplayScreenPage() {
                         {/* Order Header */}
                         <div className="flex items-start justify-between border-b border-slate-800/80 pb-2.5">
                           <div>
-                            <span className="text-[19px] font-bold text-orange-400 tracking-tight">
-                              #{order.orderNumber}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[19px] font-bold text-orange-400 tracking-tight">
+                                #{order.orderNumber}
+                              </span>
+                              <span className="text-[11px] font-semibold text-slate-300 bg-slate-900/90 border border-slate-700/60 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                <Clock className="w-3 h-3 text-amber-400" /> {formatTime(order.createdAt)}
+                              </span>
+                            </div>
                             {(order.customerName || order.customerPhone) && (
                               <p className="text-xs font-medium text-orange-200 mt-0.5">
                                 👤 {order.customerName || 'Customer'} {order.customerPhone ? `(${order.customerPhone})` : ''}
@@ -603,13 +622,21 @@ export default function KitchenDisplayScreenPage() {
                         {/* Items List */}
                         <div className="space-y-2 py-1">
                           {order.items.map((item: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-[15px]">
-                              <span className="font-semibold text-slate-100 flex items-center gap-2">
-                                <span className="text-orange-400 font-bold text-base w-6 text-right">
-                                  {item.quantity}×
+                            <div key={idx} className="space-y-1 text-[15px]">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold text-slate-100 flex items-center gap-2">
+                                  <span className="text-orange-400 font-bold text-base w-6 text-right">
+                                    {item.quantity}×
+                                  </span>
+                                  {item.name}
                                 </span>
-                                {item.name}
-                              </span>
+                              </div>
+                              {item.notes && (
+                                <div className="ml-8 px-2 py-0.5 bg-orange-950/90 border border-orange-500/80 text-orange-300 font-bold text-xs rounded-lg inline-flex items-center gap-1 shadow-sm">
+                                  <span>📝 Note:</span>
+                                  <span className="underline decoration-orange-400">{item.notes}</span>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -668,9 +695,14 @@ export default function KitchenDisplayScreenPage() {
                         {/* Order Header */}
                         <div className="flex items-start justify-between border-b border-slate-800/80 pb-2.5">
                           <div>
-                            <span className="text-[19px] font-bold text-emerald-400 tracking-tight">
-                              #{order.orderNumber}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[19px] font-bold text-emerald-400 tracking-tight">
+                                #{order.orderNumber}
+                              </span>
+                              <span className="text-[11px] font-semibold text-slate-300 bg-slate-900/90 border border-slate-700/60 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                <Clock className="w-3 h-3 text-amber-400" /> {formatTime(order.createdAt)}
+                              </span>
+                            </div>
                             {(order.customerName || order.customerPhone) && (
                               <p className="text-xs font-medium text-emerald-200 mt-0.5">
                                 👤 {order.customerName || 'Customer'} {order.customerPhone ? `(${order.customerPhone})` : ''}
@@ -685,13 +717,21 @@ export default function KitchenDisplayScreenPage() {
                         {/* Items List */}
                         <div className="space-y-2 py-1">
                           {order.items.map((item: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-[15px]">
-                              <span className="font-semibold text-slate-100 flex items-center gap-2">
-                                <span className="text-emerald-400 font-bold text-base w-6 text-right">
-                                  {item.quantity}×
+                            <div key={idx} className="space-y-1 text-[15px]">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold text-slate-100 flex items-center gap-2">
+                                  <span className="text-emerald-400 font-bold text-base w-6 text-right">
+                                    {item.quantity}×
+                                  </span>
+                                  {item.name}
                                 </span>
-                                {item.name}
-                              </span>
+                              </div>
+                              {item.notes && (
+                                <div className="ml-8 px-2 py-0.5 bg-emerald-950/90 border border-emerald-500/80 text-emerald-300 font-bold text-xs rounded-lg inline-flex items-center gap-1 shadow-sm">
+                                  <span>📝 Note:</span>
+                                  <span className="underline decoration-emerald-400">{item.notes}</span>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

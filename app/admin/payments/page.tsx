@@ -10,12 +10,27 @@ import { formatINR, formatDate } from '@/lib/utils';
 import { IndianRupee, Banknote, QrCode, CreditCard, Receipt } from 'lucide-react';
 
 export default function PaymentsPage() {
-  const { payments } = useApp();
+  const { payments, orders } = useApp();
 
-  const totalRevenue = payments.reduce((acc, p) => acc + p.amount, 0);
-  const cashTotal = payments.filter((p) => p.method === 'CASH').reduce((acc, p) => acc + p.amount, 0);
-  const upiTotal = payments.filter((p) => p.method === 'UPI').reduce((acc, p) => acc + p.amount, 0);
-  const cardTotal = payments.filter((p) => p.method === 'CARD').reduce((acc, p) => acc + p.amount, 0);
+  const effectivePayments = React.useMemo(() => {
+    if (payments && payments.length > 0) return payments;
+    return orders
+      .filter((o) => o.status !== 'CANCELLED')
+      .map((o) => ({
+        id: `pay_${o.id}`,
+        orderId: o.id,
+        orderNumber: String(o.orderNumber),
+        amount: o.total,
+        method: o.paymentMethod || 'CASH',
+        status: 'SUCCESS' as const,
+        createdAt: o.createdAt || new Date().toISOString(),
+      }));
+  }, [payments, orders]);
+
+  const totalRevenue = effectivePayments.reduce((acc, p) => acc + p.amount, 0);
+  const cashTotal = effectivePayments.filter((p) => p.method === 'CASH').reduce((acc, p) => acc + p.amount, 0);
+  const upiTotal = effectivePayments.filter((p) => p.method === 'UPI').reduce((acc, p) => acc + p.amount, 0);
+  const cardTotal = effectivePayments.filter((p) => p.method === 'CARD').reduce((acc, p) => acc + p.amount, 0);
 
   const columns: Column<PaymentTransaction>[] = [
     {
@@ -108,7 +123,7 @@ export default function PaymentsPage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold text-gray-500">Transactions</p>
-              <h4 className="text-xl font-black text-gray-900 mt-1">{payments.length}</h4>
+              <h4 className="text-xl font-black text-gray-900 mt-1">{effectivePayments.length}</h4>
             </div>
             <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center">
               <Receipt className="w-5 h-5" />
@@ -120,7 +135,7 @@ export default function PaymentsPage() {
       {/* Transaction Table */}
       <div className="space-y-3">
         <h3 className="text-lg font-bold text-gray-900">Recent Transactions</h3>
-        <DataTable columns={columns} data={payments} emptyTitle="No payments recorded" />
+        <DataTable columns={columns} data={effectivePayments} emptyTitle="No payments recorded" />
       </div>
     </div>
   );

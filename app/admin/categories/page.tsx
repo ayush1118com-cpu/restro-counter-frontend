@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Tags, Edit2, Trash2, Utensils } from 'lucide-react';
+import { Plus, Tags, Edit2, Trash2, Utensils, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
 import { Category } from '@/types';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DEFAULT_PRESET_CATEGORIES } from '@/lib/constants/menu-templates';
 
 export default function CategoryManagementPage() {
   const { categories, addCategory, updateCategory, deleteCategory } = useApp();
@@ -55,6 +56,37 @@ export default function CategoryManagementPage() {
         <Button variant="primary" size="md" onClick={handleOpenAdd} className="font-bold shadow-md shadow-amber-500/20">
           <Plus className="w-4 h-4" /> Add Category
         </Button>
+      </div>
+ 
+      {/* Quick Add Popular Categories Bar */}
+      <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/60 space-y-2">
+        <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-amber-600" /> 1-Click Add Popular Restaurant Categories:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {DEFAULT_PRESET_CATEGORIES.map((preset) => {
+            const alreadyExists = categories.some((c) => c.name.toLowerCase() === preset.name.toLowerCase());
+            return (
+              <button
+                key={preset.name}
+                type="button"
+                disabled={alreadyExists}
+                onClick={() => {
+                  if (!alreadyExists) {
+                    addCategory(preset.name, preset.description);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                  alreadyExists
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 opacity-80 cursor-default'
+                    : 'bg-white hover:bg-amber-100 text-slate-700 border border-slate-200 hover:border-amber-300 shadow-2xs cursor-pointer active:scale-95'
+                }`}
+              >
+                {alreadyExists ? `✓ ${preset.name}` : `+ ${preset.name}`}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

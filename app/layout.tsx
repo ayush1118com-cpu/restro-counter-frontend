@@ -4,8 +4,8 @@ import { AppProvider } from '@/lib/context/app-context';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-  title: 'Restro Counter System - Modern Restaurant POS & Kitchen Display',
-  description: 'Manage counter orders, payments, menus, and real-time kitchen display operations from one unified restaurant management system.',
+  title: 'ServDesk - Restaurant Counter POS & Kitchen Display System',
+  description: 'ServDesk - Modern Counter POS, Khata Book & Kitchen Display System powered by Alvora Tech Solution.',
 };
 
 export default function RootLayout({

@@ -13,6 +13,8 @@ import {
   OrderStatus,
   PaymentMethod,
   PaymentTransaction,
+  KhataAccount,
+  KhataTransaction,
   Restaurant,
   RestaurantStatus,
   User,
@@ -65,6 +67,7 @@ interface AppContextType {
   addToCart: (item: MenuItem) => void;
   removeFromCart: (itemId: string) => void;
   updateCartQuantity: (itemId: string, quantity: number) => void;
+  updateCartItemNotes: (itemId: string, notes: string) => void;
   clearCart: () => void;
   cartSubtotal: number;
   cartTax: number;
@@ -73,7 +76,21 @@ interface AppContextType {
   // Orders & Kitchen
   orders: Order[];
   payments: PaymentTransaction[];
-  createOrder: (paymentMethod: PaymentMethod, customerPhone?: string, customerName?: string) => Promise<Order>;
+  khataAccounts: KhataAccount[];
+  createOrder: (
+    paymentMethod: PaymentMethod,
+    customerPhone?: string,
+    customerName?: string,
+    paidAmount?: number,
+    dueAmount?: number
+  ) => Promise<Order>;
+  recordKhataPayment: (accountId: string, amount: number, method: PaymentMethod, notes?: string) => void;
+  getCustomerKhata: (customerNameOrPhone: string) => KhataAccount | undefined;
+  addItemsToOrder: (
+    orderId: string,
+    items: { itemId: string; name: string; price: number; quantity: number; requiresKitchen?: boolean }[],
+    paymentMethod?: PaymentMethod
+  ) => Promise<Order | null>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
 
   // Sound alert trigger
@@ -108,10 +125,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [categories, setCategories] = useState<Category[]>(() => getInitialState('restro_categories', []));
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const initial = getInitialState('restro_categories', MOCK_CATEGORIES);
+    if (!initial || initial.length === 0) return MOCK_CATEGORIES;
+    if (!initial.some((c: Category) => c.id === 'cat_all')) {
+      return [{ id: 'cat_all', name: 'All', description: 'All items', itemCount: 0, isActive: true }, ...initial];
+    }
+    return initial;
+  });
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getInitialState('restro_menu_items', []));
   const [orders, setOrders] = useState<Order[]>(() => getInitialState('restro_orders', []));
-  const [payments, setPayments] = useState<PaymentTransaction[]>([]);
+  const [payments, setPayments] = useState<PaymentTransaction[]>(() => getInitialState('restro_payments', []));
+  const [khataAccounts, setKhataAccounts] = useState<KhataAccount[]>(() => getInitialState('restro_khata', []));
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -231,25 +256,108 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             notes: dbOrder.notes
           }));
           setOrders(dbOrders);
-saveStorage('restro_orders', dbOrders);
+          saveStorage('restro_orders', dbOrders);
+
+          // Automatically derive / sync payment transactions from orders
+          setPayments((prev) => {
+            const payMap = new Map<string, PaymentTransaction>();
+            // Keep existing recorded payments
+            prev.forEach((p) => payMap.set(p.orderId || p.id, p));
+
+            // Derive for all non-cancelled orders
+            dbOrders.forEach((o) => {
+              if (o.status !== 'CANCELLED' && (o.paymentStatus === 'PAID' || !o.paymentStatus)) {
+                const key = o.id;
+                const existing = payMap.get(key) || Array.from(payMap.values()).find((p) => p.orderNumber === o.orderNumber);
+                if (!existing) {
+                  payMap.set(key, {
+                    id: `pay_${o.id}`,
+                    orderId: o.id,
+                    orderNumber: o.orderNumber,
+                    amount: o.total,
+                    method: o.paymentMethod || 'CASH',
+                    status: 'SUCCESS',
+                    createdAt: o.createdAt || new Date().toISOString(),
+                  });
+                }
+              }
+            });
+
+            const merged = Array.from(payMap.values()).sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            saveStorage('restro_payments', merged);
+            return merged;
+          });
         }
       })
       .catch(err => console.error('Failed to fetch orders from DB:', err));
 
-    // Fetch Categories and Menu (Only for RESTAURANT_ADMIN, Kitchen Staff doesn't need them and will get 403)
-    if (currentUser.role === 'RESTAURANT_ADMIN') {
+    // Fetch Payments from backend database
+    authFetch(`${API_URL}/payments?limit=100`)
+      .then(resData => {
+        if (resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
+          const dbPayments: PaymentTransaction[] = resData.data.map((p: any) => ({
+            id: p._id || p.id,
+            orderId: (typeof p.orderId === 'object' && p.orderId?._id) ? p.orderId._id : (p.orderId || ''),
+            orderNumber: (typeof p.orderId === 'object' && p.orderId?.orderNumber) ? String(p.orderId.orderNumber) : (p.orderNumber ? String(p.orderNumber) : '1001'),
+            amount: p.amount,
+            method: p.method,
+            status: p.status === 'PAID' ? 'SUCCESS' : (p.status || 'SUCCESS'),
+            createdAt: p.paidAt || p.createdAt || new Date().toISOString(),
+          }));
+
+          setPayments((prev) => {
+            const payMap = new Map<string, PaymentTransaction>();
+            prev.forEach((p) => payMap.set(p.orderId || p.id, p));
+            dbPayments.forEach((p) => payMap.set(p.orderId || p.id, p));
+            const merged = Array.from(payMap.values()).sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            saveStorage('restro_payments', merged);
+            return merged;
+          });
+        }
+      })
+      .catch(err => console.error('Failed to fetch payments from DB:', err));
+
+    // Fetch Categories and Menu (For RESTAURANT_ADMIN & KITCHEN_STAFF)
+    if (currentUser.role === 'RESTAURANT_ADMIN' || currentUser.role === 'KITCHEN_STAFF') {
       authFetch(`${API_URL}/categories`)
         .then(resData => {
           if (resData.success && Array.isArray(resData.data)) {
-            const dbCategories = resData.data.map((c: any) => ({
+            const fetchedCategories = resData.data.map((c: any) => ({
               id: c._id,
               name: c.name,
               description: c.description || '',
               itemCount: c.itemCount || 0,
               isActive: c.isActive
             }));
-            setCategories(dbCategories);
-saveStorage('restro_categories', dbCategories);
+
+            setCategories((prev) => {
+              const catMap = new Map<string, Category>();
+              catMap.set('cat_all', {
+                id: 'cat_all',
+                name: 'All',
+                description: 'All items',
+                itemCount: 0,
+                isActive: true,
+              });
+
+              // Add from backend categories
+              fetchedCategories.forEach((c: Category) => catMap.set(c.id, c));
+
+              // Preserve any existing menu-derived categories
+              prev.forEach((c) => {
+                if (!catMap.has(c.id)) {
+                  catMap.set(c.id, c);
+                }
+              });
+
+              const result = Array.from(catMap.values());
+              saveStorage('restro_categories', result);
+              return result;
+            });
           }
         })
         .catch(err => console.error('Failed to fetch categories:', err));
@@ -259,8 +367,8 @@ saveStorage('restro_categories', dbCategories);
           if (resData.success && Array.isArray(resData.data)) {
             const dbMenuItems = resData.data.map((m: any) => ({
               id: m._id,
-              categoryId: m.categoryId?._id || m.categoryId,
-              categoryName: m.categoryId?.name || 'Category',
+              categoryId: m.categoryId?._id || m.categoryId || 'cat_general',
+              categoryName: m.categoryId?.name || m.categoryName || 'General',
               name: m.name,
               description: m.description || '',
               price: m.price,
@@ -270,7 +378,51 @@ saveStorage('restro_categories', dbCategories);
               requiresKitchen: m.requiresKitchen !== false
             }));
             setMenuItems(dbMenuItems);
-saveStorage('restro_menu_items', dbMenuItems);
+            saveStorage('restro_menu_items', dbMenuItems);
+
+            // Auto-derive categories from the single /menu JSON response!
+            setCategories((prev) => {
+              const catMap = new Map<string, Category>();
+              catMap.set('cat_all', {
+                id: 'cat_all',
+                name: 'All',
+                description: 'All menu items',
+                itemCount: dbMenuItems.length,
+                isActive: true,
+              });
+
+              // Keep existing categories
+              prev.forEach((c) => {
+                if (c.id !== 'cat_all') catMap.set(c.id, { ...c, itemCount: 0 });
+              });
+
+              // Add / update categories from menu items
+              dbMenuItems.forEach((item: any) => {
+                const cId = item.categoryId;
+                const cName = item.categoryName || 'General';
+                if (cId && cId !== 'cat_all') {
+                  if (!catMap.has(cId)) {
+                    catMap.set(cId, {
+                      id: cId,
+                      name: cName,
+                      description: '',
+                      itemCount: 1,
+                      isActive: true,
+                    });
+                  } else {
+                    const existing = catMap.get(cId)!;
+                    existing.itemCount = (existing.itemCount || 0) + 1;
+                    if (!existing.name || existing.name === 'General') {
+                      existing.name = cName;
+                    }
+                  }
+                }
+              });
+
+              const result = Array.from(catMap.values());
+              saveStorage('restro_categories', result);
+              return result;
+            });
           }
         })
         .catch(err => console.error('Failed to fetch menu items:', err));
@@ -354,16 +506,38 @@ saveStorage('restro_menu_items', dbMenuItems);
       // 1. Local Cross-tab sync
       const channel = new BroadcastChannel('restro_orders_sync');
       channel.onmessage = (event) => {
-        const { type, order, orderId, status } = event.data || {};
+        const { type, order, orderId, status, payment } = event.data || {};
         if (type === 'NEW_ORDER' && order) {
           setOrders((prev) => {
             if (prev.some((o) => (o.id || o.orderNumber) === (order.id || order.orderNumber))) return prev;
             return [order, ...prev];
           });
+
+          // Sync payment transaction in real-time
+          const payItem: PaymentTransaction = payment || {
+            id: `pay_${order.id}`,
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            amount: order.total,
+            method: order.paymentMethod || 'CASH',
+            status: 'SUCCESS',
+            createdAt: order.createdAt || new Date().toISOString(),
+          };
+
+          setPayments((prev) => {
+            if (prev.some((p) => p.orderId === payItem.orderId || p.orderNumber === payItem.orderNumber)) return prev;
+            const updated = [payItem, ...prev];
+            saveStorage('restro_payments', updated);
+            return updated;
+          });
+
           playOrderNotificationSound();
           toast.success("NEW KITCHEN TICKET! Order #" + order.orderNumber);
         } else if (type === 'UPDATE_STATUS' && orderId && status) {
           setOrders((prev) => prev.map((o) => (o.id === orderId || o.orderNumber === orderId ? { ...o, status } : o)));
+        } else if (type === 'ORDER_UPDATED' && order) {
+          setOrders((prev) => prev.map((o) => (o.id === order.id || o.orderNumber === order.orderNumber ? order : o)));
+          playOrderNotificationSound();
         }
       };
 
@@ -391,6 +565,46 @@ saveStorage('restro_menu_items', dbMenuItems);
                 };
                 return [normalized as Order, ...prev];
               });
+
+              // Add to real-time live payments
+              const payItem: PaymentTransaction = {
+                id: `pay_${newOrder._id || newOrder.id}`,
+                orderId: newOrder._id || newOrder.id,
+                orderNumber: newOrder.orderNumber?.toString() || '1001',
+                amount: newOrder.grandTotal || newOrder.total,
+                method: newOrder.paymentMethod || 'CASH',
+                status: 'SUCCESS',
+                createdAt: newOrder.createdAt || new Date().toISOString(),
+              };
+
+              setPayments((prev) => {
+                if (prev.some((p) => p.orderId === payItem.orderId || p.orderNumber === payItem.orderNumber)) return prev;
+                const updated = [payItem, ...prev];
+                saveStorage('restro_payments', updated);
+                return updated;
+              });
+            }
+          });
+
+          socket.on('payment-updated', (payload: any) => {
+            if (payload?.payment) {
+              const p = payload.payment;
+              const payItem: PaymentTransaction = {
+                id: p._id || p.id,
+                orderId: (typeof p.orderId === 'object' && p.orderId?._id) ? p.orderId._id : (p.orderId || ''),
+                orderNumber: (typeof p.orderId === 'object' && p.orderId?.orderNumber) ? String(p.orderId.orderNumber) : (p.orderNumber ? String(p.orderNumber) : '1001'),
+                amount: p.amount,
+                method: p.method,
+                status: p.status === 'PAID' ? 'SUCCESS' : (p.status || 'SUCCESS'),
+                createdAt: p.paidAt || p.createdAt || new Date().toISOString(),
+              };
+
+              setPayments((prev) => {
+                const filtered = prev.filter((item) => item.id !== payItem.id && item.orderId !== payItem.orderId);
+                const updated = [payItem, ...filtered];
+                saveStorage('restro_payments', updated);
+                return updated;
+              });
             }
           });
 
@@ -400,7 +614,22 @@ saveStorage('restro_menu_items', dbMenuItems);
               if (payload?.order) {
                 const targetId = payload.order._id || payload.order.id;
                 const nextStatus = payload.order.orderStatus || payload.order.status;
-                setOrders((prev) => prev.map((o) => (o.id === targetId || o.orderNumber === targetId ? { ...o, status: nextStatus } : o)));
+                const updatedItems = payload.order.items?.map((i: any) => ({
+                  itemId: i.menuItemId || i.itemId, name: i.name, price: i.price, quantity: i.quantity, requiresKitchen: i.requiresKitchen, notes: i.notes
+                }));
+                setOrders((prev) => prev.map((o) => {
+                  if (o.id === targetId || o.orderNumber === (payload.order.orderNumber?.toString() || targetId)) {
+                    return {
+                      ...o,
+                      status: nextStatus,
+                      ...(updatedItems ? { items: updatedItems } : {}),
+                      ...(payload.order.grandTotal !== undefined ? { total: payload.order.grandTotal } : {}),
+                      ...(payload.order.subtotal !== undefined ? { subtotal: payload.order.subtotal } : {}),
+                      ...(payload.order.tax !== undefined ? { tax: payload.order.tax } : {}),
+                    };
+                  }
+                  return o;
+                }));
               }
             });
           });
@@ -805,6 +1034,12 @@ saveStorage('restro_menu_items', dbMenuItems);
     );
   };
 
+  const updateCartItemNotes = (itemId: string, notes: string) => {
+    setCart((prev) =>
+      prev.map((ci) => (ci.itemId === itemId ? { ...ci, notes } : ci))
+    );
+  };
+
   const clearCart = () => {
     setCart([]);
   };
@@ -813,10 +1048,86 @@ saveStorage('restro_menu_items', dbMenuItems);
   const cartTax = Math.round(cartSubtotal * 0.05); // 5% GST tax
   const cartTotal = cartSubtotal + cartTax;
 
+  // Helper to find customer khata account
+  const getCustomerKhata = (customerNameOrPhone: string): KhataAccount | undefined => {
+    if (!customerNameOrPhone) return undefined;
+    const term = customerNameOrPhone.trim().toLowerCase();
+    return khataAccounts.find(
+      (a) =>
+        a.customerName.toLowerCase() === term ||
+        (a.customerPhone && a.customerPhone.includes(term))
+    );
+  };
+
+  // Record Khata Payment (Customer paying back pending due)
+  const recordKhataPayment = (
+    accountId: string,
+    amount: number,
+    method: PaymentMethod,
+    notes?: string
+  ) => {
+    if (amount <= 0) return;
+
+    setKhataAccounts((prev) => {
+      const updated = prev.map((acc) => {
+        if (acc.id === accountId) {
+          const newDue = Math.max(0, acc.totalDue - amount);
+          const newTx: KhataTransaction = {
+            id: `ktx_${Date.now()}`,
+            type: 'PAYMENT_RECEIVED',
+            amount,
+            paymentMethod: method,
+            notes: notes || 'Pending due cleared',
+            createdAt: new Date().toISOString(),
+          };
+          return {
+            ...acc,
+            totalDue: newDue,
+            totalPaid: acc.totalPaid + amount,
+            lastUpdated: new Date().toISOString(),
+            transactions: [newTx, ...acc.transactions],
+          };
+        }
+        return acc;
+      });
+      saveStorage('restro_khata', updated);
+      return updated;
+    });
+
+    // Also record in payment ledger
+    const newPayment: PaymentTransaction = {
+      id: `pay_khata_${Date.now()}`,
+      orderId: `khata_${accountId}`,
+      orderNumber: `KHATA-${accountId.slice(-4)}`,
+      amount,
+      method,
+      status: 'SUCCESS',
+      createdAt: new Date().toISOString(),
+    };
+
+    setPayments((prev) => {
+      const updated = [newPayment, ...prev];
+      saveStorage('restro_payments', updated);
+      return updated;
+    });
+
+    toast.success(`Received ${amount} payment for Khata. Updated due balance.`);
+  };
+
   // Order & POS actions
-  const createOrder = async (paymentMethod: PaymentMethod, customerPhone?: string, customerName?: string): Promise<Order> => {
+  const createOrder = async (
+    paymentMethod: PaymentMethod,
+    customerPhone?: string,
+    customerName?: string,
+    paidAmount?: number,
+    dueAmount?: number
+  ): Promise<Order> => {
     const orderNum = (1025 + orders.length + 1).toString();
     const hasKitchenItems = cart.some((ci) => ci.requiresKitchen !== false);
+
+    const actualPaid = paidAmount !== undefined ? paidAmount : cartTotal;
+    const actualDue = dueAmount !== undefined ? dueAmount : Math.max(0, cartTotal - actualPaid);
+    const isFullPaid = actualDue <= 0;
 
     let newOrder: Order = {
       id: `ord_${Date.now()}`,
@@ -834,14 +1145,78 @@ saveStorage('restro_menu_items', dbMenuItems);
       tax: cartTax,
       discount: 0,
       total: cartTotal,
+      paidAmount: actualPaid,
+      dueAmount: actualDue,
       paymentMethod,
-      paymentStatus: 'PAID',
+      paymentStatus: isFullPaid ? 'PAID' : actualPaid > 0 ? 'PARTIALLY_PAID' : 'PENDING',
       status: hasKitchenItems ? 'NEW' : 'COMPLETED',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       customerName,
       customerPhone,
     };
+
+    // Auto-update Khata if there is dueAmount or customer exists
+    if (customerName || customerPhone) {
+      const custKey = (customerName || customerPhone || '').trim();
+      setKhataAccounts((prev) => {
+        let existing = prev.find(
+          (a) =>
+            (customerName && a.customerName.toLowerCase() === customerName.toLowerCase()) ||
+            (customerPhone && a.customerPhone === customerPhone)
+        );
+
+        let updated: KhataAccount[];
+
+        const newTx: KhataTransaction = {
+          id: `ktx_${Date.now()}`,
+          orderId: newOrder.id,
+          orderNumber: newOrder.orderNumber,
+          type: actualDue > 0 ? 'DUE_ADDED' : 'PAYMENT_RECEIVED',
+          amount: actualDue > 0 ? actualDue : actualPaid,
+          paymentMethod,
+          notes: actualDue > 0
+            ? `Order #${orderNum}: Paid ${actualPaid}, Balance Due ${actualDue}`
+            : `Order #${orderNum}: Fully paid`,
+          createdAt: new Date().toISOString(),
+        };
+
+        if (existing) {
+          updated = prev.map((a) => {
+            if (a.id === existing!.id) {
+              return {
+                ...a,
+                customerName: customerName || a.customerName,
+                customerPhone: customerPhone || a.customerPhone,
+                totalDue: a.totalDue + actualDue,
+                totalPaid: a.totalPaid + actualPaid,
+                ordersCount: a.ordersCount + 1,
+                lastUpdated: new Date().toISOString(),
+                transactions: [newTx, ...a.transactions],
+              };
+            }
+            return a;
+          });
+        } else if (actualDue > 0 || actualPaid > 0) {
+          const newAccount: KhataAccount = {
+            id: `khata_${Date.now()}`,
+            customerName: customerName || `Customer (${customerPhone})`,
+            customerPhone,
+            totalDue: actualDue,
+            totalPaid: actualPaid,
+            ordersCount: 1,
+            lastUpdated: new Date().toISOString(),
+            transactions: [newTx],
+          };
+          updated = [newAccount, ...prev];
+        } else {
+          updated = prev;
+        }
+
+        saveStorage('restro_khata', updated);
+        return updated;
+      });
+    }
 
     // MONGODB SYNC: Push new order to backend
     if (typeof window !== 'undefined') {
@@ -863,7 +1238,7 @@ saveStorage('restro_menu_items', dbMenuItems);
               paymentMethod: newOrder.paymentMethod,
               discount: newOrder.discount,
               tax: newOrder.tax,
-              confirmPayment: true,
+              confirmPayment: isFullPaid,
               customerName: newOrder.customerName,
               customerPhone: newOrder.customerPhone
             })
@@ -891,7 +1266,7 @@ saveStorage('restro_menu_items', dbMenuItems);
       id: `pay_${Date.now()}`,
       orderId: newOrder.id,
       orderNumber: newOrder.orderNumber,
-      amount: newOrder.total,
+      amount: actualPaid,
       method: paymentMethod,
       status: 'SUCCESS',
       createdAt: new Date().toISOString(),
@@ -903,11 +1278,13 @@ saveStorage('restro_menu_items', dbMenuItems);
       return updated;
     });
 
-    setPayments((prev) => {
-      const updated = [newPayment, ...prev];
-      saveStorage('restro_payments', updated);
-      return updated;
-    });
+    if (actualPaid > 0) {
+      setPayments((prev) => {
+        const updated = [newPayment, ...prev];
+        saveStorage('restro_payments', updated);
+        return updated;
+      });
+    }
 
     clearCart();
 
@@ -915,14 +1292,18 @@ saveStorage('restro_menu_items', dbMenuItems);
     if (typeof window !== 'undefined') {
       try {
         const channel = new BroadcastChannel('restro_orders_sync');
-        channel.postMessage({ type: 'NEW_ORDER', order: newOrder });
+        channel.postMessage({ type: 'NEW_ORDER', order: newOrder, payment: newPayment });
         channel.close();
       } catch (e) {}
     }
 
     // Trigger visual + sound alert for kitchen / counter
     playOrderNotificationSound();
-    toast.success(`Order #${newOrder.orderNumber} created successfully via ${paymentMethod}`);
+    if (actualDue > 0) {
+      toast.warning(`Order #${newOrder.orderNumber}: Received ${actualPaid}, Balance Due ${actualDue} recorded to Khata Book!`);
+    } else {
+      toast.success(`Order #${newOrder.orderNumber} created successfully via ${paymentMethod}`);
+    }
 
     return newOrder;
   };
@@ -970,6 +1351,141 @@ saveStorage('restro_menu_items', dbMenuItems);
     });
   };
 
+  const addItemsToOrder = async (
+    orderId: string,
+    newItems: { itemId: string; name: string; price: number; quantity: number; requiresKitchen?: boolean }[],
+    paymentMethod?: PaymentMethod
+  ): Promise<Order | null> => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder) {
+      toast.error('Order not found');
+      return null;
+    }
+
+    // Call Backend API
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/orders/${orderId}/items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            items: newItems.map((i) => ({
+              menuItemId: i.itemId,
+              quantity: i.quantity,
+            })),
+            paymentMethod,
+          }),
+        });
+        const resData = await res.json();
+        if (resData.success && resData.data) {
+          const dbOrder = resData.data;
+          const updatedOrder: Order = {
+            id: dbOrder._id || dbOrder.id,
+            orderNumber: (dbOrder.orderNumber || targetOrder.orderNumber).toString(),
+            restaurantId: dbOrder.restaurantId,
+            items: dbOrder.items.map((i: any) => ({
+              itemId: i.menuItemId || i.itemId,
+              name: i.name,
+              price: i.price,
+              quantity: i.quantity,
+              requiresKitchen: i.requiresKitchen,
+              notes: i.notes,
+            })),
+            subtotal: dbOrder.subtotal,
+            tax: dbOrder.tax,
+            discount: dbOrder.discount,
+            total: dbOrder.grandTotal || dbOrder.total,
+            paymentMethod: dbOrder.paymentMethod || targetOrder.paymentMethod,
+            paymentStatus: dbOrder.paymentStatus || targetOrder.paymentStatus,
+            status: dbOrder.orderStatus || dbOrder.status || targetOrder.status,
+            createdAt: dbOrder.createdAt || targetOrder.createdAt,
+            updatedAt: dbOrder.updatedAt || new Date().toISOString(),
+            customerName: dbOrder.customerName || targetOrder.customerName,
+            customerPhone: dbOrder.customerPhone || targetOrder.customerPhone,
+          };
+
+          setOrders((prev) => {
+            const nextList = prev.map((o) => (o.id === orderId ? updatedOrder : o));
+            saveStorage('restro_orders', nextList);
+            return nextList;
+          });
+
+          if (typeof window !== 'undefined') {
+            try {
+              const channel = new BroadcastChannel('restro_orders_sync');
+              channel.postMessage({ type: 'ORDER_UPDATED', order: updatedOrder });
+              channel.close();
+            } catch (e) {}
+          }
+
+          toast.success(`Items added to Order #${updatedOrder.orderNumber}`);
+          return updatedOrder;
+        }
+      } catch (err) {
+        console.error('Failed to add items via API:', err);
+      }
+    }
+
+    // Local fallback
+    const updatedItems = [...targetOrder.items];
+    let hasKitchen = false;
+    for (const ni of newItems) {
+      if (ni.requiresKitchen !== false) hasKitchen = true;
+      const idx = updatedItems.findIndex((it) => it.itemId === ni.itemId);
+      if (idx > -1) {
+        updatedItems[idx] = {
+          ...updatedItems[idx],
+          quantity: updatedItems[idx].quantity + ni.quantity,
+        };
+      } else {
+        updatedItems.push({
+          itemId: ni.itemId,
+          name: ni.name,
+          price: ni.price,
+          quantity: ni.quantity,
+          requiresKitchen: ni.requiresKitchen,
+        });
+      }
+    }
+
+    const subtotal = updatedItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+    const tax = Math.round(subtotal * 0.05);
+    const total = subtotal + tax - (targetOrder.discount || 0);
+    const newStatus = hasKitchen && (targetOrder.status === 'COMPLETED' || targetOrder.status === 'READY') ? 'PREPARING' : targetOrder.status;
+
+    const locallyUpdatedOrder: Order = {
+      ...targetOrder,
+      items: updatedItems,
+      subtotal,
+      tax,
+      total,
+      status: newStatus,
+      paymentMethod: paymentMethod || targetOrder.paymentMethod,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setOrders((prev) => {
+      const nextList = prev.map((o) => (o.id === orderId ? locallyUpdatedOrder : o));
+      saveStorage('restro_orders', nextList);
+      return nextList;
+    });
+
+    if (typeof window !== 'undefined') {
+      try {
+        const channel = new BroadcastChannel('restro_orders_sync');
+        channel.postMessage({ type: 'ORDER_UPDATED', order: locallyUpdatedOrder });
+        channel.close();
+      } catch (e) {}
+    }
+
+    toast.success(`Items added to Order #${locallyUpdatedOrder.orderNumber}`);
+    return locallyUpdatedOrder;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -997,13 +1513,18 @@ saveStorage('restro_menu_items', dbMenuItems);
         addToCart,
         removeFromCart,
         updateCartQuantity,
+        updateCartItemNotes,
         clearCart,
         cartSubtotal,
         cartTax,
         cartTotal,
         orders,
         payments,
+        khataAccounts,
         createOrder,
+        recordKhataPayment,
+        getCustomerKhata,
+        addItemsToOrder,
         updateOrderStatus,
         playOrderNotificationSound,
       }}

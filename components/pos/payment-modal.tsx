@@ -5,9 +5,10 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { PaymentMethod, Order } from '@/types';
 import { formatINR } from '@/lib/utils';
-import { Banknote, QrCode, CreditCard, CheckCircle2, Printer, PlusCircle } from 'lucide-react';
+import { Banknote, QrCode, CreditCard, CheckCircle2, Printer, PlusCircle, AlertCircle, BookOpen } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 
 export interface PaymentModalProps {
   isOpen: boolean;
@@ -17,26 +18,61 @@ export interface PaymentModalProps {
 }
 
 export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }: PaymentModalProps) {
-  const { cartTotal, createOrder, clearCart } = useApp();
+  const { cartTotal, createOrder, clearCart, getCustomerKhata } = useApp();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('UPI');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [paidAmount, setPaidAmount] = useState<string>('');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Initialize paid amount whenever cartTotal changes or modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setPaidAmount(cartTotal.toString());
+    }
+  }, [isOpen, cartTotal]);
+
+  // Check if this customer already has an existing Khata account with pending due
+  const existingKhata = React.useMemo(() => {
+    return getCustomerKhata(customerPhone) || getCustomerKhata(customerName);
+  }, [customerName, customerPhone, getCustomerKhata]);
+
+  const numPaid = paidAmount === '' ? cartTotal : Number(paidAmount) || 0;
+  const currentOrderDue = Math.max(0, cartTotal - numPaid);
+  const totalCombinedDue = (existingKhata?.totalDue || 0) + currentOrderDue;
+
   const handleConfirmPayment = async () => {
+    if (!customerName.trim() && !customerPhone.trim()) {
+      toast.error('Please enter Customer Name or Mobile Number');
+      return;
+    }
+
+    if (numPaid < 0) {
+      toast.error('Paid amount cannot be negative');
+      return;
+    }
+
     setIsProcessing(true);
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const order = await createOrder(selectedMethod, customerPhone || undefined, customerName || undefined);
+    const order = await createOrder(
+      selectedMethod,
+      customerPhone.trim() || undefined,
+      customerName.trim() || undefined,
+      numPaid,
+      currentOrderDue
+    );
     setCreatedOrder(order);
     setIsProcessing(false);
     onPaymentSuccess(order);
 
     Swal.fire({
       icon: 'success',
-      title: 'Payment Confirmed!',
-      text: `Order #${order.orderNumber} placed successfully via ${selectedMethod}`,
-      timer: 3000,
+      title: currentOrderDue > 0 ? 'Khata / Order Confirmed!' : 'Payment Confirmed!',
+      text: currentOrderDue > 0
+        ? `Order #${order.orderNumber} placed. Paid: ₹${numPaid}, Remaining Due: ₹${currentOrderDue} added to Khata Book.`
+        : `Order #${order.orderNumber} placed successfully via ${selectedMethod}`,
+      timer: 3500,
       timerProgressBar: true,
       showConfirmButton: false,
       customClass: {
@@ -48,6 +84,9 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
 
   const handleResetForNewOrder = () => {
     setCreatedOrder(null);
+    setCustomerName('');
+    setCustomerPhone('');
+    setPaidAmount('');
     clearCart();
     onClose();
   };
@@ -116,25 +155,111 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
           {/* Customer Details Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Customer Name (Optional)</label>
+              <label className="block text-xs font-bold text-gray-800 mb-1">
+                Customer Name / Token <span className="text-rose-600 font-black">*</span>
+              </label>
               <input
                 type="text"
-                placeholder="e.g. Amit Sharma"
+                placeholder="e.g. Rahul / Table 4 / Token 12"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold"
+                className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold placeholder:text-gray-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Number (Optional)</label>
+              <label className="block text-xs font-bold text-gray-800 mb-1">
+                Mobile Number <span className="text-gray-400 font-normal">(Optional)</span>
+              </label>
               <input
                 type="tel"
                 placeholder="e.g. 9876543210"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold"
+                className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold placeholder:text-gray-400"
               />
             </div>
+          </div>
+
+          {/* PREVIOUS KHATA DUE ALERT BANNER */}
+          {existingKhata && existingKhata.totalDue > 0 && (
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 shadow-2xs">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div className="text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                  <BookOpen className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Previous Khata Due Alert!</span>
+                </div>
+                <p className="text-rose-800 mt-0.5">
+                  Customer <strong>{existingKhata.customerName}</strong> has an existing pending balance of{' '}
+                  <strong className="text-rose-900 text-sm font-black underline decoration-rose-400">
+                    {formatINR(existingKhata.totalDue)}
+                  </strong>
+                  .
+                </p>
+                <p className="text-[11px] text-rose-700/80 mt-1 font-medium">
+                  Total Payable with this order: <strong className="text-rose-950 font-black">{formatINR(totalCombinedDue)}</strong>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* PAYMENT BREAKDOWN: Amount Paid & Balance Due */}
+          <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                Received vs Due (Khata Split)
+              </span>
+              <button
+                type="button"
+                onClick={() => setPaidAmount(cartTotal.toString())}
+                className="text-[11px] font-bold text-amber-700 hover:text-amber-800 underline"
+              >
+                Full Payment (₹{cartTotal})
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-emerald-800 mb-1">
+                  Amount Paying Now (₹)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-xs font-bold text-gray-500">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={cartTotal}
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                    placeholder={cartTotal.toString()}
+                    className="w-full pl-6 pr-3 py-2 text-sm font-black text-emerald-700 bg-white border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-rose-800 mb-1">
+                  Remaining Due / Baaki (₹)
+                </label>
+                <div className="w-full px-3 py-2 text-sm font-black text-rose-700 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between">
+                  <span>{formatINR(currentOrderDue)}</span>
+                  {currentOrderDue > 0 && (
+                    <span className="text-[10px] font-bold bg-rose-200/80 text-rose-900 px-1.5 py-0.5 rounded">
+                      Khata Due
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {currentOrderDue > 0 && (
+              <p className="text-[11px] text-amber-800 font-semibold bg-white p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                <span>📝 Note:</span>
+                <span>
+                  ₹{currentOrderDue} will be automatically added to <strong>{customerName || 'customer'}&apos;s</strong> Khata account.
+                </span>
+              </p>
+            )}
           </div>
 
           {/* Payment Method Selector */}

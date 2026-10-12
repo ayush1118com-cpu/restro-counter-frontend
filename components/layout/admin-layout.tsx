@@ -20,6 +20,7 @@ import {
   Bell,
   Building,
   Radio,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/lib/context/app-context';
@@ -28,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, logout, orders, restaurants } = useApp();
+  const { currentUser, logout, orders, restaurants, khataAccounts } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Role-based route protection
@@ -58,6 +59,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const activeRestaurantName = currentUser?.restaurantName || activeRest?.name || 'Restro Counter';
 
   const pendingCount = orders.filter((o) => o.status === 'NEW' || o.status === 'PREPARING').length;
+  const totalKhataDueCustomers = (khataAccounts || []).filter((k) => k.totalDue > 0).length;
 
   const navItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -66,6 +68,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { label: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },
     { label: 'Categories', href: '/admin/categories', icon: Tags },
     { label: 'Order History', href: '/admin/orders', icon: History },
+    { label: 'Khata Book', href: '/admin/khata', icon: BookOpen, count: totalKhataDueCustomers > 0 ? totalKhataDueCustomers : undefined },
     { label: 'Payments', href: '/admin/payments', icon: CreditCard },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
@@ -191,6 +194,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <LogOut className="w-3.5 h-3.5" />
             Logout
           </button>
+
+          {/* ServDesk Branding */}
+          <div className="pt-2 text-center border-t border-gray-100">
+            <p className="text-[11px] font-black text-gray-900 tracking-tight">ServDesk</p>
+            <p className="text-[9px] font-bold text-amber-600">Powered by Alvora Tech Solution</p>
+          </div>
         </div>
       </aside>
 

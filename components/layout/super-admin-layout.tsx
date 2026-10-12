@@ -73,9 +73,10 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
               <ChefHat className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-base font-black text-gray-900 tracking-tight">Restro Counter</h2>
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md mt-0.5 w-max">
-                <ShieldCheck className="w-3 h-3" /> Super Admin
+              <h2 className="text-base font-black text-gray-900 tracking-tight">ServDesk</h2>
+              <p className="text-[10px] font-bold text-amber-600">Powered by Alvora Tech Solution</p>
+              <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5 w-max">
+                <ShieldCheck className="w-3 h-3 text-amber-600" /> Super Admin
               </div>
             </div>
           </div>

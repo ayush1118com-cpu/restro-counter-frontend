@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/lib/context/app-context';
 import { Order } from '@/types';
-import { formatINR, formatDate } from '@/lib/utils';
-import { Eye, Printer } from 'lucide-react';
+import { formatINR, formatDate, formatTime } from '@/lib/utils';
+import { Eye, Printer, Clock, User, UtensilsCrossed } from 'lucide-react';
 import { BillPreviewModal } from '@/components/pos/bill-preview-modal';
+import { OrderDetailsModal } from '@/components/pos/order-details-modal';
 
 export default function OrderHistoryPage() {
   const { orders } = useApp();
@@ -19,10 +20,13 @@ export default function OrderHistoryPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
   const [selectedBillOrder, setSelectedBillOrder] = useState<Order | null>(null);
+  const [selectedDetailsOrder, setSelectedDetailsOrder] = useState<Order | null>(null);
 
   const filtered = orders.filter((o) => {
     const matchesSearch =
-      o.orderNumber.includes(search) ||
+      String(o.orderNumber || '').includes(search) ||
+      (o.customerName && o.customerName.toLowerCase().includes(search.toLowerCase())) ||
+      (o.customerPhone && o.customerPhone.includes(search)) ||
       o.items.some((i) => i.name.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
     const matchesPayment = paymentFilter === 'ALL' || o.paymentMethod === paymentFilter;
@@ -32,14 +36,46 @@ export default function OrderHistoryPage() {
   const columns: Column<Order>[] = [
     {
       header: 'Order ID',
-      cell: (o) => <span className="font-black text-amber-600">#{o.orderNumber}</span>,
+      cell: (o) => (
+        <button
+          onClick={() => setSelectedDetailsOrder(o)}
+          className="font-black text-amber-600 hover:text-amber-700 hover:underline text-left"
+        >
+          #{o.orderNumber}
+        </button>
+      ),
     },
     {
-      header: 'Items',
+      header: 'Customer',
       cell: (o) => (
-        <span className="text-gray-700 truncate max-w-xs block">
-          {o.items.map((i) => `${i.name} × ${i.quantity}`).join(', ')}
-        </span>
+        <div className="flex flex-col text-xs max-w-[140px]">
+          <span className="font-bold text-gray-900 truncate">
+            {o.customerName || 'Walk-in'}
+          </span>
+          {o.customerPhone && (
+            <span className="text-[11px] text-gray-500 font-medium truncate">{o.customerPhone}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Items Section',
+      cell: (o) => (
+        <div className="flex flex-col gap-1 py-1 max-w-xs">
+          {o.items.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-800">
+              <span className="font-bold text-amber-800 bg-amber-50 border border-amber-200/60 px-1.5 py-0.2 rounded text-[11px] shrink-0">
+                {item.quantity}×
+              </span>
+              <span className="font-semibold text-gray-900 truncate">{item.name}</span>
+              {item.notes && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50/80 border border-amber-200/50 px-1 rounded truncate">
+                  📝 {item.notes}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       ),
     },
     {
@@ -48,35 +84,68 @@ export default function OrderHistoryPage() {
     },
     {
       header: 'Payment',
-      cell: (o) => <span className="font-semibold text-gray-700">{o.paymentMethod}</span>,
-    },
-    {
-      header: 'Payment Status',
-      cell: (o) => <Badge variant="success">{o.paymentStatus}</Badge>,
+      cell: (o) => (
+        <div className="flex flex-col text-xs">
+          <span className="font-semibold text-gray-800">{o.paymentMethod}</span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Badge
+              variant={o.paymentStatus === 'PAID' ? 'success' : o.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'outline'}
+              className="text-[10px] py-0 px-1.5 w-fit font-bold"
+            >
+              {o.paymentStatus}
+            </Badge>
+          </div>
+          {o.dueAmount !== undefined && o.dueAmount > 0 && (
+            <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded mt-0.5 w-fit border border-rose-200">
+              Due: {formatINR(o.dueAmount)}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       header: 'Order Status',
       cell: (o) => (
-        <Badge variant={o.status === 'READY' || o.status === 'COMPLETED' ? 'success' : 'warning'}>
+        <Badge variant={o.status === 'READY' || o.status === 'COMPLETED' ? 'success' : o.status === 'CANCELLED' ? 'danger' : 'warning'}>
           {o.status}
         </Badge>
       ),
     },
     {
-      header: 'Date',
-      cell: (o) => <span className="text-gray-500">{formatDate(o.createdAt)}</span>,
+      header: 'Order Time',
+      cell: (o) => (
+        <div className="flex flex-col text-xs">
+          <span className="font-bold text-gray-900 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            {formatTime(o.createdAt)}
+          </span>
+          <span className="text-[11px] text-gray-500 font-medium">{formatDate(o.createdAt)}</span>
+        </div>
+      ),
     },
     {
       header: 'Actions',
       cell: (o) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSelectedBillOrder(o)}
-          className="text-xs"
-        >
-          <Printer className="w-3.5 h-3.5 mr-1" /> Bill
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedDetailsOrder(o)}
+            className="text-xs h-8 px-2 text-gray-700 hover:text-amber-600 hover:border-amber-300"
+            title="View Items & Details"
+          >
+            <Eye className="w-3.5 h-3.5 mr-1" /> View
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedBillOrder(o)}
+            className="text-xs h-8 px-2 text-gray-700 hover:text-amber-600 hover:border-amber-300"
+            title="Print Receipt Bill"
+          >
+            <Printer className="w-3.5 h-3.5 mr-1" /> Bill
+          </Button>
+        </div>
       ),
     },
   ];
@@ -134,6 +203,13 @@ export default function OrderHistoryPage() {
         isOpen={!!selectedBillOrder}
         onClose={() => setSelectedBillOrder(null)}
         order={selectedBillOrder}
+      />
+
+      <OrderDetailsModal
+        isOpen={!!selectedDetailsOrder}
+        onClose={() => setSelectedDetailsOrder(null)}
+        order={selectedDetailsOrder}
+        onPrintBill={(o) => setSelectedBillOrder(o)}
       />
     </div>
   );

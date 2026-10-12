@@ -15,6 +15,7 @@ import {
   Sparkles,
   Wifi,
   WifiOff,
+  StickyNote,
 } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 import { formatINR } from '@/lib/utils';
@@ -33,6 +34,7 @@ export default function POSScreenPage() {
     addToCart,
     removeFromCart,
     updateCartQuantity,
+    updateCartItemNotes,
     clearCart,
     cartSubtotal,
     cartTax,
@@ -64,9 +66,30 @@ export default function POSScreenPage() {
     };
   }, []);
 
+  // Derive all active categories from categories list AND any categories present in menuItems
+  const allCategories = React.useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    map.set('cat_all', { id: 'cat_all', name: 'All' });
+
+    categories.forEach((cat) => {
+      if (cat.id && cat.name) map.set(cat.id, { id: cat.id, name: cat.name });
+    });
+
+    menuItems.forEach((item) => {
+      if (item.categoryId && item.categoryName && !map.has(item.categoryId)) {
+        map.set(item.categoryId, { id: item.categoryId, name: item.categoryName });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [categories, menuItems]);
+
   // Filter menu items by search & category
   const filteredItems = menuItems.filter((item) => {
-    const matchesCat = selectedCategoryId === 'cat_all' || item.categoryId === selectedCategoryId;
+    const matchesCat =
+      selectedCategoryId === 'cat_all' ||
+      item.categoryId === selectedCategoryId ||
+      (item.categoryName && item.categoryName.toLowerCase() === selectedCategoryId.toLowerCase());
     const matchesSearch =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
       (item.categoryName || '').toLowerCase().includes(search.toLowerCase());
@@ -142,7 +165,7 @@ export default function POSScreenPage() {
 
             {/* CATEGORY NAV PILLS */}
             <div className="overflow-x-auto no-scrollbar flex items-center gap-2 py-1">
-              {categories.map((cat) => {
+              {allCategories.map((cat) => {
                 const isSelected = selectedCategoryId === cat.id;
                 return (
                   <button
@@ -281,34 +304,76 @@ export default function POSScreenPage() {
               cart.map((ci) => (
                 <div
                   key={ci.itemId}
-                  className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3"
+                  className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/90 space-y-2.5 transition-all hover:border-amber-300"
                 >
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-slate-900 truncate">{ci.name}</h4>
-                    <p className="text-[11px] text-slate-500 font-semibold">{formatINR(ci.price)} each</p>
-                  </div>
-
-                  {/* Quantity controls */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-white rounded-lg border border-slate-200 shadow-2xs">
-                      <button
-                        onClick={() => updateCartQuantity(ci.itemId, ci.quantity - 1)}
-                        className="p-1 text-slate-600 hover:text-slate-900 cursor-pointer"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="px-2 text-xs font-bold text-slate-900">{ci.quantity}</span>
-                      <button
-                        onClick={() => updateCartQuantity(ci.itemId, ci.quantity + 1)}
-                        className="p-1 text-slate-600 hover:text-slate-900 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-slate-900 truncate">{ci.name}</h4>
+                      <p className="text-[11px] text-slate-500 font-semibold">{formatINR(ci.price)} each</p>
                     </div>
 
-                    <span className="text-xs font-bold text-slate-900 w-14 text-right">
-                      {formatINR(ci.price * ci.quantity)}
-                    </span>
+                    {/* Quantity controls */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center bg-white rounded-lg border border-slate-200 shadow-2xs">
+                        <button
+                          onClick={() => updateCartQuantity(ci.itemId, ci.quantity - 1)}
+                          className="p-1 text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="px-2 text-xs font-bold text-slate-900">{ci.quantity}</span>
+                        <button
+                          onClick={() => updateCartQuantity(ci.itemId, ci.quantity + 1)}
+                          className="p-1 text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <span className="text-xs font-bold text-slate-900 w-14 text-right">
+                        {formatINR(ci.price * ci.quantity)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Add Note Section (e.g. Dark cold coffee, less sugar) */}
+                  <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
+                    <div className="relative flex items-center">
+                      <StickyNote className="w-3 h-3 text-amber-500 absolute left-2.5 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Add note: e.g. Dark cold coffee, less sugar..."
+                        value={ci.notes || ''}
+                        onChange={(e) => updateCartItemNotes(ci.itemId, e.target.value)}
+                        className="w-full pl-7 pr-6 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-800 placeholder:text-slate-400 font-medium focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                      />
+                      {ci.notes && (
+                        <button
+                          onClick={() => updateCartItemNotes(ci.itemId, '')}
+                          className="absolute right-2 text-[10px] text-slate-400 hover:text-rose-600 font-bold"
+                          title="Clear note"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Quick Suggestions Chips */}
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
+                      {['Dark / Strong', 'Less Sugar', 'No Sugar', 'Extra Hot', 'Less Spicy'].map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => {
+                            const newNote = ci.notes ? `${ci.notes}, ${suggestion}` : suggestion;
+                            updateCartItemNotes(ci.itemId, newNote);
+                          }}
+                          className="text-[9px] font-semibold text-slate-500 bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 border border-slate-200 px-1.5 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer"
+                        >
+                          +{suggestion}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))

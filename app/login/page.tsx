@@ -105,8 +105,9 @@ export default function LoginPage() {
             <ChefHat className="w-8 h-8" />
           </div>
         </Link>
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Restro Counter</h2>
-        <p className="text-sm text-gray-600 font-medium">Sign in to your restaurant POS, Kitchen KDS, or Management portal</p>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">ServDesk</h2>
+        <p className="text-xs font-bold text-amber-600">Powered by Alvora Tech Solution</p>
+        <p className="text-xs text-gray-500 font-medium">Sign in to your restaurant POS, Kitchen KDS, or Counter Management portal</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">

@@ -17,8 +17,8 @@ export function PublicFooter() {
                 <ChefHat className="w-6 h-6 stroke-[2.5]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-white tracking-tight">Restro Counter</span>
-                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">POS & KDS System</span>
+                <span className="text-xl font-bold text-white tracking-tight">ServDesk</span>
+                <span className="text-[10px] font-bold text-orange-400">Powered by Alvora Tech Solution</span>
               </div>
             </Link>
 
@@ -61,21 +61,21 @@ export function PublicFooter() {
           {/* Contact Info Column */}
           <div>
             <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4 text-orange-400">Contact Us</h4>
-            <ul className="space-y-3 text-slate-300 font-medium">
+            <ul className="space-y-3 text-slate-300 font-medium text-xs">
               <li className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-orange-400" />
-                <span>+91 (800) 456-RESTRO</span>
+                <Phone className="w-4 h-4 text-orange-400 shrink-0" />
+                <a href="tel:8385973582" className="hover:text-amber-400 transition-colors">8385973582</a>
               </li>
               <li className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-orange-400" />
-                <span>support@restrocounter.com</span>
+                <Mail className="w-4 h-4 text-orange-400 shrink-0" />
+                <a href="mailto:alvora.tech.solution@gmail.com" className="hover:text-amber-400 transition-colors">alvora.tech.solution@gmail.com</a>
               </li>
               <li className="flex items-center gap-2.5">
-                <MapPin className="w-4 h-4 text-orange-400" />
-                <span>New Delhi, India</span>
+                <MapPin className="w-4 h-4 text-orange-400 shrink-0" />
+                <span>Jaipur, Rajasthan, India</span>
               </li>
               <li className="pt-2 text-[11px] text-slate-400">
-                Support Hours: 24/7 Live POS Assistance
+                Support: 24/7 Live Assistance
               </li>
             </ul>
           </div>
@@ -84,7 +84,7 @@ export function PublicFooter() {
 
         {/* Bottom Copyright & Legal Links Bar */}
         <div className="border-t border-slate-800/80 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-400 text-[11px] font-medium">
-          <p>© {new Date().getFullYear()} Restro Counter System. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ServDesk. Powered by Alvora Tech Solution. All rights reserved.</p>
           
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-amber-400 transition-colors">

@@ -25,8 +25,7 @@ export default function ContactPage() {
                 <Phone className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-gray-900">Sales & Support</p>
-                  <p>+91 (800) 456-RESTRO</p>
-                  <p>+91 98765 43210</p>
+                  <p>8385973582</p>
                 </div>
               </div>
 
@@ -34,8 +33,7 @@ export default function ContactPage() {
                 <Mail className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-gray-900">Email Address</p>
-                  <p>support@restrocounter.com</p>
-                  <p>sales@restrocounter.com</p>
+                  <p>alvora.tech.solution@gmail.com</p>
                 </div>
               </div>
 
@@ -43,8 +41,8 @@ export default function ContactPage() {
                 <MapPin className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-gray-900">Headquarters</p>
-                  <p>Restro Counter Technologies Pvt Ltd</p>
-                  <p>Block C, Connaught Place, New Delhi 110001</p>
+                  <p>Alvora Tech Solution</p>
+                  <p>Jaipur, Rajasthan, India</p>
                 </div>
               </div>
 

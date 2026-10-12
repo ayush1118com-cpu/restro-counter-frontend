@@ -28,10 +28,10 @@ export function PublicNavbar() {
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-bold text-white tracking-tight leading-tight group-hover:text-orange-400 transition-colors">
-              Restro Counter
+              ServDesk
             </span>
-            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest flex items-center gap-1.5">
-              POS & KDS SYSTEM
+            <span className="text-[10px] font-bold text-orange-400 tracking-wider">
+              Powered by Alvora Tech Solution
             </span>
           </div>
         </Link>

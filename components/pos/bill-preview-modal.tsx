@@ -189,6 +189,11 @@ TOTAL:       ${formatINR(order.total)}
             <div>
               <p className="font-bold text-gray-900 text-sm">Order #{order.orderNumber}</p>
               <p className="text-xs font-semibold text-gray-700">{formatDate(order.createdAt)}</p>
+              {order.customerName && (
+                <p className="text-xs font-bold text-gray-800 mt-0.5">
+                  Cust: {order.customerName} {order.customerPhone ? `(${order.customerPhone})` : ''}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-900 text-[11px] font-extrabold rounded-full uppercase border border-emerald-300">
@@ -205,12 +210,19 @@ TOTAL:       ${formatINR(order.total)}
               <span>Amount</span>
             </div>
             {order.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center text-gray-900 font-semibold">
-                <span className="truncate max-w-[140px] font-bold">{item.name}</span>
-                <span className="text-gray-800">
-                  {item.quantity} × {formatINR(item.price)}
-                </span>
-                <span className="font-extrabold text-gray-900">{formatINR(item.quantity * item.price)}</span>
+              <div key={idx} className="space-y-0.5">
+                <div className="flex justify-between items-center text-gray-900 font-semibold">
+                  <span className="truncate max-w-[140px] font-bold">{item.name}</span>
+                  <span className="text-gray-800">
+                    {item.quantity} × {formatINR(item.price)}
+                  </span>
+                  <span className="font-extrabold text-gray-900">{formatINR(item.quantity * item.price)}</span>
+                </div>
+                {item.notes && (
+                  <div className="text-[10px] text-gray-600 font-medium pl-1 italic">
+                    ↳ Note: {item.notes}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -232,15 +244,38 @@ TOTAL:       ${formatINR(order.total)}
               </div>
             )}
             <div className="border-t-2 border-gray-900 pt-2 flex justify-between font-black text-base text-gray-900">
-              <span>TOTAL</span>
+              <span>TOTAL BILL</span>
               <span>{formatINR(order.total)}</span>
             </div>
+            {order.dueAmount !== undefined && order.dueAmount > 0 && (
+              <div className="pt-1.5 space-y-1 text-xs border-t border-dotted border-gray-300">
+                <div className="flex justify-between text-emerald-800 font-bold">
+                  <span>Amount Paid:</span>
+                  <span>{formatINR(order.paidAmount !== undefined ? order.paidAmount : order.total - order.dueAmount)}</span>
+                </div>
+                <div className="flex justify-between text-rose-800 font-black text-sm bg-rose-50 p-1 rounded border border-rose-200">
+                  <span>BALANCE DUE (KHATA):</span>
+                  <span>{formatINR(order.dueAmount)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer message */}
-          <div className="text-center pt-4 border-t border-dashed border-gray-400 text-xs text-gray-800 font-sans">
+          <div className="text-center pt-3 border-t border-dashed border-gray-400 text-xs text-gray-800 font-sans space-y-1">
             <p className="font-bold text-gray-900">Thank you for dining with us!</p>
-            <p>Visit again soon for fresh counter meals.</p>
+            <p className="text-[11px] text-gray-600">Visit again soon for fresh counter meals.</p>
+            <div className="pt-2 border-t border-dotted border-gray-300 mt-2 space-y-0.5">
+              <p className="text-[11px] font-black text-gray-900 tracking-wider uppercase">
+                ServDesk
+              </p>
+              <p className="text-[10px] font-bold text-gray-700">
+                Powered by Alvora Tech Solution
+              </p>
+              <p className="text-[10px] font-bold text-gray-800">
+                Contact: 8385973582
+              </p>
+            </div>
           </div>
         </div>
 
