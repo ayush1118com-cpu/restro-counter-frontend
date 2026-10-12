@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -93,8 +94,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile Header */}
       <div className="md:hidden bg-white border-b border-[#E7EAF0] px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold shadow-sm">
-            <ChefHat className="w-4 h-4" />
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-sm border border-amber-200 shrink-0">
+            <Image
+              src="/logo.png"
+              alt="ServDesk Logo"
+              fill
+              className="object-cover"
+            />
           </div>
           <div>
             <span className="font-bold text-[#172033] text-sm block truncate max-w-[150px]">
@@ -123,8 +129,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Restaurant Branding Area */}
           <div className="p-4 border-b border-[#E7EAF0] flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/50 shrink-0">
-              <ChefHat className="w-5 h-5 text-amber-600" />
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-amber-200 shadow-sm shrink-0">
+              <Image
+                src="/logo.png"
+                alt="ServDesk Logo"
+                fill
+                className="object-cover"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-bold text-[#172033] truncate tracking-tight">

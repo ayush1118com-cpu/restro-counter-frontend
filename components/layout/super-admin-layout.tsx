@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -46,8 +47,13 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile Top Header */}
       <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
-            <ChefHat className="w-5 h-5" />
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-amber-200 shadow-sm shrink-0">
+            <Image
+              src="/logo.png"
+              alt="ServDesk Logo"
+              fill
+              className="object-cover"
+            />
           </div>
           <span className="font-bold text-gray-900 text-sm">Super Admin</span>
         </div>
@@ -69,8 +75,13 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
         <div>
           {/* Logo & Platform Name */}
           <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
-              <ChefHat className="w-6 h-6" />
+            <div className="relative w-11 h-11 rounded-xl overflow-hidden border border-amber-200 shadow-md shadow-amber-500/20 shrink-0">
+              <Image
+                src="/logo.png"
+                alt="ServDesk Logo"
+                fill
+                className="object-cover"
+              />
             </div>
             <div>
               <h2 className="text-base font-black text-gray-900 tracking-tight">ServDesk</h2>

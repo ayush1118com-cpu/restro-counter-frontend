@@ -62,9 +62,9 @@ export default function FeaturesPage() {
         <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full uppercase tracking-wider">
           Complete Feature Suite
         </span>
-        <h1 className="text-4xl font-black text-gray-900">Engineered for Counter Efficiency</h1>
+        <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900 tracking-tight">Engineered for Counter Efficiency</h1>
         <p className="text-gray-600 text-base">
-          Discover all the tools Restro Counter system brings to simplify your counter and kitchen operations.
+          Discover all the tools ServDesk brings to simplify your counter and kitchen operations.
         </p>
       </div>
 

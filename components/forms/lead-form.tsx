@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -54,7 +55,7 @@ export function LeadForm() {
         </div>
         <h3 className="text-2xl font-bold text-[#172033]">Thank you! Demo request received.</h3>
         <p className="text-sm text-[#667085] max-w-md mx-auto leading-relaxed">
-          Our restaurant onboarding specialist will contact you shortly to set up your personalized Restro Counter demo.
+          Our restaurant onboarding specialist will contact you shortly to set up your personalized ServDesk demo.
         </p>
         <Button
           variant="outline"
@@ -75,8 +76,10 @@ export function LeadForm() {
       className="bg-white p-6 sm:p-10 rounded-3xl border border-[#E7EAF0] shadow-xl space-y-6 text-[#172033]"
     >
       <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200">
-        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-        <span>Request Free Demo & Instant Access</span>
+        <div className="relative w-4 h-4 rounded overflow-hidden shrink-0">
+          <Image src="/logo.png" alt="ServDesk" fill className="object-cover" />
+        </div>
+        <span>Request Free ServDesk Demo & Instant Access</span>
       </div>
 
       <div>
@@ -84,7 +87,7 @@ export function LeadForm() {
           Transform Your Restaurant Counter
         </h3>
         <p className="text-xs sm:text-sm text-[#667085] mt-1 font-medium">
-          Fill in the details below to test drive Restro Counter POS & KDS platform.
+          Fill in the details below to test drive ServDesk POS & KDS platform.
         </p>
       </div>
 

@@ -17,7 +17,7 @@ export default function HowItWorksPage() {
         <span className="text-xs font-bold text-amber-700 bg-amber-100/80 px-4 py-1.5 rounded-full uppercase tracking-wider border border-amber-200">
           Workflow Architecture
         </span>
-        <h1 className="text-4xl font-extrabold text-[#172033]">How Restro Counter Works</h1>
+        <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900 tracking-tight">How ServDesk Works</h1>
         <p className="text-[#667085] text-base">
           A seamless flow designed to eliminate delays between customer payment and kitchen preparation.
         </p>
@@ -27,7 +27,7 @@ export default function HowItWorksPage() {
         {steps.map((st, idx) => (
           <div key={idx} className="bg-white p-7 rounded-3xl border border-[#E7EAF0] shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white font-black flex items-center justify-center text-sm shadow-md shadow-amber-500/25">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-amber-500/25">
                 {st.num}
               </div>
               <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">

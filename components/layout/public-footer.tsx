@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { ChefHat, Mail, Phone, MapPin, ShieldCheck, Zap } from 'lucide-react';
+import Image from 'next/image';
+import { Mail, Phone, MapPin, ShieldCheck, Zap } from 'lucide-react';
 
 export function PublicFooter() {
   return (
@@ -13,8 +14,13 @@ export function PublicFooter() {
           {/* Brand Info Column */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-orange-500/20">
-                <ChefHat className="w-6 h-6 stroke-[2.5]" />
+              <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-lg shadow-orange-500/20 border border-orange-500/40 shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="ServDesk Logo"
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-white tracking-tight">ServDesk</span>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ChefHat,
@@ -328,8 +329,13 @@ export default function KitchenDisplayScreenPage() {
       <header className="sticky top-0 z-50 min-h-[72px] py-3 md:py-0 bg-[#0B1224]/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 shadow-2xl">
         {/* LEFT BRANDING */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-slate-950 flex items-center justify-center shadow-md shadow-amber-500/20">
-            <ChefHat className="w-6 h-6" />
+          <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-amber-500/20 border border-orange-500/40 shrink-0">
+            <Image
+              src="/logo.png"
+              alt="ServDesk Logo"
+              fill
+              className="object-cover"
+            />
           </div>
           <div>
             <h1 className="text-[17px] font-bold tracking-tight text-white flex items-center gap-2 leading-none">

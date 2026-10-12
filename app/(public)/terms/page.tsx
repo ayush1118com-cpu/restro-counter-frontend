@@ -19,8 +19,8 @@ export default function TermsOfServicePage() {
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/20">
             <FileCheck className="w-4 h-4" /> Terms & Conditions
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white">Terms of Service</h1>
-          <p className="text-xs text-slate-400 font-medium">Last Updated: September 30, 2026 • Restro Counter System</p>
+          <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">Terms of Service</h1>
+          <p className="text-xs text-slate-400 font-medium">Last Updated: September 30, 2026 • ServDesk System</p>
         </div>
 
         <div className="space-y-8 text-sm text-slate-300 font-normal leading-relaxed">

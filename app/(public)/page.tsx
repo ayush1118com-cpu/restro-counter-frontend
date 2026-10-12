@@ -50,10 +50,10 @@ export default function HomePage() {
               </div>
 
               {/* Main Heading */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight leading-[1.2] text-white">
                 Run Your Restaurant <br className="hidden sm:inline" />
                 Smarter.{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 font-bold">
                   Serve Every Customer Better.
                 </span>
               </h1>
@@ -194,7 +194,7 @@ export default function HomePage() {
           <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-100/80 px-4 py-1.5 rounded-full border border-amber-200">
             Powerful Features
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-gray-900">Everything Your Counter Needs</h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 tracking-tight">Everything Your Counter Needs</h2>
           <p className="text-sm text-gray-600 font-normal">Built specifically for high-speed counter ordering without table friction.</p>
         </div>
 
@@ -232,7 +232,7 @@ export default function HomePage() {
             <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-100/80 px-4 py-1.5 rounded-full border border-amber-200">
               Seamless Process
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#172033]">How Restro Counter Works</h2>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 tracking-tight">How ServDesk Works</h2>
             <p className="text-sm text-[#667085]">6 simple steps from customer walk-in to instant order completion.</p>
           </div>
 
@@ -250,7 +250,7 @@ export default function HomePage() {
                 className="bg-white p-7 rounded-3xl border border-[#E7EAF0] shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between group"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white font-black flex items-center justify-center text-sm shadow-md shadow-amber-500/25">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-amber-500/25">
                     {st.step}
                   </div>
                   <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
@@ -280,7 +280,7 @@ export default function HomePage() {
             <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-4 py-1.5 rounded-full border border-amber-400/20">
               ⚡ Zero Latency Sync
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">Real-Time Kitchen Connection</h2>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Real-Time Kitchen Connection</h2>
             <p className="text-amber-200/80 text-sm font-bold">"Orders move from counter to kitchen screen in under 100ms."</p>
           </div>
 

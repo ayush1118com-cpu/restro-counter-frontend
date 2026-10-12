@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ChefHat, Menu, X, ArrowRight, Sparkles } from 'lucide-react';
+import { Menu, X, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -23,8 +24,14 @@ export function PublicNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-orange-500/25 group-hover:scale-105 transition-all">
-            <ChefHat className="w-6 h-6 stroke-[2.5]" />
+          <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-lg shadow-orange-500/25 group-hover:scale-105 transition-all border border-orange-500/40 shrink-0">
+            <Image
+              src="/logo.png"
+              alt="ServDesk Logo"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-bold text-white tracking-tight leading-tight group-hover:text-orange-400 transition-colors">

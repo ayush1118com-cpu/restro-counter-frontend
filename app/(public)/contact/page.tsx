@@ -9,7 +9,7 @@ export default function ContactPage() {
         <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full uppercase tracking-wider">
           Get in Touch
         </span>
-        <h1 className="text-4xl font-black text-gray-900">We'd Love to Hear From You</h1>
+        <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900 tracking-tight">We'd Love to Hear From You</h1>
         <p className="text-gray-600 text-base">
           Have questions about onboarding your restaurant or request a customized software demo?
         </p>

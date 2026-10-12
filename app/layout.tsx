@@ -6,6 +6,11 @@ import { Toaster } from 'sonner';
 export const metadata: Metadata = {
   title: 'ServDesk - Restaurant Counter POS & Kitchen Display System',
   description: 'ServDesk - Modern Counter POS, Khata Book & Kitchen Display System powered by Alvora Tech Solution.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({

@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ChefHat, Shield, Store, ArrowRight, Flame } from 'lucide-react';
+import { Shield, Store, ArrowRight, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
@@ -101,17 +102,36 @@ export default function LoginPage() {
       
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 relative z-10">
         <Link href="/" className="inline-flex items-center gap-2.5">
-          <div className="w-14 h-14 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg shadow-black/10 ring-4 ring-white">
-            <ChefHat className="w-8 h-8" />
+          <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-orange-500/20 ring-4 ring-white border border-orange-500/30">
+            <Image
+              src="/logo.png"
+              alt="ServDesk Logo"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
         </Link>
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight">ServDesk</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">ServDesk</h2>
         <p className="text-xs font-bold text-amber-600">Powered by Alvora Tech Solution</p>
         <p className="text-xs text-gray-500 font-medium">Sign in to your restaurant POS, Kitchen KDS, or Counter Management portal</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-white/95 backdrop-blur-xl py-8 px-5 shadow-xl shadow-black/5 border border-white/60 rounded-3xl sm:px-10 space-y-6">
+          {/* Card Top Brand Pill */}
+          <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-amber-200 shadow-sm shrink-0">
+                <Image src="/logo.png" alt="ServDesk Logo" fill className="object-cover" />
+              </div>
+              <span className="text-xs font-bold text-gray-800 tracking-tight">ServDesk Portal</span>
+            </div>
+            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
+              Secure Sign In
+            </span>
+          </div>
+
           {/* Quick Demo Role Selector Tabs */}
           <div className="bg-gray-100 p-1.5 rounded-2xl flex flex-wrap sm:flex-nowrap items-center gap-1 text-[11px] font-semibold border border-gray-200/50">
             <button
@@ -182,10 +202,13 @@ export default function LoginPage() {
               variant="primary"
               size="lg"
               isLoading={isSubmitting}
-              className="w-full font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-lg shadow-gray-900/20 py-3.5 text-sm mt-2 rounded-xl border-0 transition-all"
+              className="w-full font-bold bg-gradient-to-r from-gray-900 to-gray-800 hover:from-black hover:to-gray-900 text-white shadow-lg shadow-gray-900/20 py-3.5 text-sm mt-2 rounded-xl border border-gray-700/50 transition-all flex items-center justify-center gap-2"
             >
-              Login to {selectedRoleDemo === 'SUPER_ADMIN' ? 'Super Admin' : selectedRoleDemo === 'KITCHEN_STAFF' ? 'Kitchen KDS' : 'Restaurant POS'}
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <div className="relative w-4 h-4 rounded overflow-hidden shrink-0">
+                <Image src="/logo.png" alt="ServDesk" fill className="object-cover" />
+              </div>
+              <span>Login to {selectedRoleDemo === 'SUPER_ADMIN' ? 'Super Admin' : selectedRoleDemo === 'KITCHEN_STAFF' ? 'Kitchen KDS' : 'Restaurant POS'}</span>
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
 
