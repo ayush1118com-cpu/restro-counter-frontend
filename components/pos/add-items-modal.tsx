@@ -26,7 +26,34 @@ export function AddItemsModal({ isOpen, onClose, order, onPrintBill }: AddItemsM
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updatedOrder, setUpdatedOrder] = useState<Order | null>(null);
 
-  if (!order) return null;
+  const allCategories = React.useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    categories.forEach((c) => {
+      if (c.id !== 'cat_all' && c.name) map.set(c.id, { id: c.id, name: c.name });
+    });
+    menuItems.forEach((m) => {
+      if (m.categoryId && m.categoryName && m.categoryId !== 'cat_all' && !map.has(m.categoryId)) {
+        map.set(m.categoryId, { id: m.categoryId, name: m.categoryName });
+      }
+    });
+    return Array.from(map.values());
+  }, [categories, menuItems]);
+
+  const filteredMenuItems = React.useMemo(() => {
+    return menuItems.filter((item) => {
+      if (!item.isAvailable) return false;
+      const matchesCat =
+        selectedCategory === 'ALL' ||
+        item.categoryId === selectedCategory ||
+        (item.categoryName && item.categoryName.toLowerCase() === selectedCategory.toLowerCase());
+      const matchesSearch =
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        (item.categoryName || '').toLowerCase().includes(search.toLowerCase());
+      return matchesCat && matchesSearch;
+    });
+  }, [menuItems, selectedCategory, search]);
+
+  if (!isOpen || !order) return null;
 
   const handleAddItem = (item: MenuItem) => {
     setSelectedItems((prev) => {
@@ -100,31 +127,6 @@ export function AddItemsModal({ isOpen, onClose, order, onPrintBill }: AddItemsM
     setSearch('');
     onClose();
   };
-
-  const allCategories = React.useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    categories.forEach((c) => {
-      if (c.id !== 'cat_all' && c.name) map.set(c.id, { id: c.id, name: c.name });
-    });
-    menuItems.forEach((m) => {
-      if (m.categoryId && m.categoryName && m.categoryId !== 'cat_all' && !map.has(m.categoryId)) {
-        map.set(m.categoryId, { id: m.categoryId, name: m.categoryName });
-      }
-    });
-    return Array.from(map.values());
-  }, [categories, menuItems]);
-
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (!item.isAvailable) return false;
-    const matchesCat =
-      selectedCategory === 'ALL' ||
-      item.categoryId === selectedCategory ||
-      (item.categoryName && item.categoryName.toLowerCase() === selectedCategory.toLowerCase());
-    const matchesSearch =
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      (item.categoryName || '').toLowerCase().includes(search.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
 
   return (
     <Modal

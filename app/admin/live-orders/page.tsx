@@ -167,24 +167,28 @@ export default function LiveOrdersPage() {
       </div>
 
       {/* Bill Preview Modal */}
-      <BillPreviewModal
-        isOpen={!!selectedBillOrder}
-        onClose={() => setSelectedBillOrder(null)}
-        order={selectedBillOrder}
-      />
+      {selectedBillOrder && (
+        <BillPreviewModal
+          isOpen={!!selectedBillOrder}
+          onClose={() => setSelectedBillOrder(null)}
+          order={selectedBillOrder}
+        />
+      )}
 
       {/* Add Items Modal */}
-      <AddItemsModal
-        isOpen={!!selectedAddItemsOrder}
-        onClose={() => setSelectedAddItemsOrder(null)}
-        order={selectedAddItemsOrder}
-        onPrintBill={(ord) => {
-          setSelectedBillOrder(ord);
-          setTimeout(() => {
-            window.print();
-          }, 300);
-        }}
-      />
+      {selectedAddItemsOrder && (
+        <AddItemsModal
+          isOpen={!!selectedAddItemsOrder}
+          onClose={() => setSelectedAddItemsOrder(null)}
+          order={selectedAddItemsOrder}
+          onPrintBill={(ord) => {
+            setSelectedBillOrder(ord);
+            setTimeout(() => {
+              window.print();
+            }, 300);
+          }}
+        />
+      )}
     </div>
   );
 }
