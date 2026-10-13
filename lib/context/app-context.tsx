@@ -54,7 +54,7 @@ interface AppContextType {
   // Menu & Categories (Restaurant Admin)
   categories: Category[];
   menuItems: MenuItem[];
-  addCategory: (name: string, description?: string) => void;
+  addCategory: (name: string, description?: string) => Promise<Category | null>;
   updateCategory: (id: string, name: string, description?: string) => void;
   deleteCategory: (id: string) => void;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
@@ -166,7 +166,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const headers = {
       ...(options.headers || {}),
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {})
     };
 
     try {
@@ -834,25 +835,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Category actions
-  const addCategory = (name: string, description?: string) => {
+  const addCategory = async (name: string, description?: string): Promise<Category | null> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (token) {
-      fetch(`${API_URL}/categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ name, description })
-      }).then(res => res.json()).then(resData => {
-        if(resData.success) {
-           const c = resData.data;
-           const newCat = { id: c._id, name: c.name, description: c.description || '', itemCount: c.itemCount || 0, isActive: c.isActive };
-           setCategories(prev => [...prev, newCat]);
+      try {
+        const res = await fetch(`${API_URL}/categories`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {})
+          },
+          body: JSON.stringify({
+            name,
+            description,
+            restaurantId: currentUser?.restaurantId
+          })
+        });
+        const resData = await res.json();
+        if (resData.success && resData.data) {
+          const c = resData.data;
+          const newCat: Category = {
+            id: c._id || c.id,
+            name: c.name,
+            description: c.description || '',
+            itemCount: c.itemCount || 0,
+            isActive: c.isActive !== false,
+          };
+          setCategories((prev) => {
+            if (prev.some((x) => x.id === newCat.id || x.name.toLowerCase() === newCat.name.toLowerCase())) {
+              return prev;
+            }
+            return [...prev, newCat];
+          });
+          toast.success(`Category "${name}" added`);
+          return newCat;
         }
-      });
+      } catch (err) {
+        console.error('Failed to create category:', err);
+      }
     }
-    toast.success(`Category "${name}" added`);
+    return null;
   };
 
   const updateCategory = (id: string, name: string, description?: string) => {
@@ -860,7 +883,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       fetch(`${API_URL}/categories/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {})
+        },
         body: JSON.stringify({ name, description })
       }).catch(err => console.error('Update category error:', err));
     }
@@ -873,7 +900,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       fetch(`${API_URL}/categories/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {})
+        }
       }).catch(err => console.error('Delete category error:', err));
     }
     setCategories((prev) => prev.filter((c) => c.id !== id));
@@ -889,10 +919,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
+            Authorization: `Bearer ${token}`,
+            ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {})
           },
           body: JSON.stringify({
+            restaurantId: currentUser?.restaurantId,
             categoryId: item.categoryId,
+            categoryName: item.categoryName,
             name: item.name,
             description: item.description || '',
             price: Number(item.price),
@@ -905,12 +938,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const resData = await res.json();
         if (resData.success) {
           const m = resData.data;
+          const imgUrl = (typeof m.image === 'object' && m.image?.secure_url)
+            ? m.image.secure_url
+            : (typeof m.image === 'string' ? m.image : (m.imageUrl || item.image || ''));
           const newItem: MenuItem = {
-            id: m._id, categoryId: m.categoryId?._id || m.categoryId || item.categoryId, categoryName: item.categoryName, name: m.name, description: m.description || '',
-            price: m.price, discountPrice: m.discountPrice, image: m.image?.secure_url || m.imageUrl || item.image || '',
-            isAvailable: m.isAvailable !== false, requiresKitchen: m.requiresKitchen !== false
+            id: m._id,
+            categoryId: m.categoryId?._id || m.categoryId || item.categoryId,
+            categoryName: m.categoryId?.name || item.categoryName,
+            name: m.name,
+            description: m.description || '',
+            price: m.price,
+            discountPrice: m.discountPrice,
+            image: imgUrl,
+            isAvailable: m.isAvailable !== false,
+            requiresKitchen: m.requiresKitchen !== false,
           };
-          setMenuItems(prev => [newItem, ...prev]);
+          setMenuItems((prev) => {
+            const next = [newItem, ...prev];
+            saveStorage('restro_menu_items', next);
+            return next;
+          });
           setCategories((prev) => prev.map((c) => c.id === item.categoryId ? { ...c, itemCount: c.itemCount + 1 } : c));
           toast.success(`Item "${item.name}" added to menu`);
         } else {
@@ -931,10 +978,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           method: 'PATCH',
           headers: { 
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
+            Authorization: `Bearer ${token}`,
+            ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {})
           },
           body: JSON.stringify({
+            restaurantId: currentUser?.restaurantId,
             categoryId: item.categoryId,
+            categoryName: item.categoryName,
             name: item.name,
             description: item.description,
             price: item.price !== undefined ? Number(item.price) : undefined,
@@ -947,11 +997,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const resData = await res.json();
         if (resData.success) {
           const m = resData.data;
+          const imgUrl = (typeof m.image === 'object' && m.image?.secure_url)
+            ? m.image.secure_url
+            : (typeof m.image === 'string' ? m.image : (m.imageUrl || item.image || ''));
           const updatedItem = {
             ...item,
-            image: m.image?.secure_url || m.imageUrl || item.image || ''
+            image: imgUrl,
           };
-          setMenuItems((prev) => prev.map((mi) => (mi.id === id ? { ...mi, ...updatedItem } : mi)));
+          setMenuItems((prev) => {
+            const next = prev.map((mi) => (mi.id === id ? { ...mi, ...updatedItem } : mi));
+            saveStorage('restro_menu_items', next);
+            return next;
+          });
           toast.success('Menu item updated');
         } else {
           toast.error(resData.message || 'Failed to update menu item');

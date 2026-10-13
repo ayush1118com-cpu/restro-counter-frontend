@@ -71,6 +71,8 @@ export default function MenuManagementPage() {
     },
   });
 
+  const currentImage = watch('image');
+
   const matchingSuggestions = React.useMemo(() => {
     if (!nameQuery.trim()) {
       return POPULAR_MENU_SUGGESTIONS.slice(0, 6);
@@ -118,7 +120,8 @@ export default function MenuManagementPage() {
     setValue('description', item.description);
     setValue('price', item.price);
     setValue('discountPrice', item.discountPrice);
-    setValue('image', item.image || '');
+    const itemImg = typeof item.image === 'string' ? item.image : (item.image as any)?.secure_url || '';
+    setValue('image', itemImg);
     setValue('isAvailable', item.isAvailable);
     setValue('requiresKitchen', item.requiresKitchen !== false);
     setIsModalOpen(true);
@@ -128,9 +131,7 @@ export default function MenuManagementPage() {
     setValue('name', item.name);
     setValue('description', item.description);
     setValue('price', item.price);
-    if (item.image) {
-      setValue('image', item.image);
-    }
+    setValue('image', item.image || '');
     setValue('requiresKitchen', item.requiresKitchen);
 
     // Find or create matching category
@@ -138,8 +139,8 @@ export default function MenuManagementPage() {
       (c) => c.name.toLowerCase() === item.category.toLowerCase()
     );
     if (!matchedCat) {
-      await addCategory(item.category, `${item.category} items`);
-      matchedCat = categories.find((c) => c.name.toLowerCase() === item.category.toLowerCase());
+      const created = await addCategory(item.category, `${item.category} items`);
+      if (created) matchedCat = created;
     }
 
     if (matchedCat) {
@@ -155,8 +156,8 @@ export default function MenuManagementPage() {
   const handleQuickAddCategory = async (catName: string) => {
     let existing = categories.find((c) => c.name.toLowerCase() === catName.toLowerCase());
     if (!existing) {
-      await addCategory(catName, `${catName} items`);
-      existing = categories.find((c) => c.name.toLowerCase() === catName.toLowerCase());
+      const created = await addCategory(catName, `${catName} items`);
+      if (created) existing = created;
     }
     if (existing) {
       setValue('categoryId', existing.id);
@@ -173,11 +174,11 @@ export default function MenuManagementPage() {
     let categoryName = categoryObj?.name || data.categoryId;
 
     if (!categoryObj && data.categoryId) {
-      await addCategory(data.categoryId, `${data.categoryId} items`);
-      categoryObj = categories.find((c) => c.name.toLowerCase() === data.categoryId.toLowerCase());
-      if (categoryObj) {
-        finalCategoryId = categoryObj.id;
-        categoryName = categoryObj.name;
+      const created = await addCategory(data.categoryId, `${data.categoryId} items`);
+      if (created) {
+        categoryObj = created;
+        finalCategoryId = created.id;
+        categoryName = created.name;
       }
     }
 
@@ -210,17 +211,27 @@ export default function MenuManagementPage() {
   const columns: Column<MenuItem>[] = [
     {
       header: 'Image',
-      cell: (item) => (
-        <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-          {item.image ? (
-            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <UtensilsCrossed className="w-4 h-4" />
-            </div>
-          )}
-        </div>
-      ),
+      cell: (item) => {
+        const imgSrc = typeof item.image === 'string' ? item.image : (item.image as any)?.secure_url;
+        return (
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+            {imgSrc ? (
+              <img
+                src={imgSrc}
+                alt={item.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <UtensilsCrossed className="w-4 h-4" />
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Item Name',
@@ -453,14 +464,16 @@ export default function MenuManagementPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Item Image (URL or Local File Upload)</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Item Image (Photo / URL or Browse File)</label>
             <div className="flex gap-2 items-center">
-              <Input
+              <input
+                type="text"
                 placeholder="https://images.unsplash.com/..."
-                {...register('image')}
-                className="flex-1"
+                value={currentImage || ''}
+                onChange={(e) => setValue('image', e.target.value)}
+                className="flex-1 px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
               />
-              <label className="px-3.5 py-2 text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg cursor-pointer whitespace-nowrap transition-colors flex items-center gap-1.5">
+              <label className="px-3.5 py-2 text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg cursor-pointer whitespace-nowrap transition-colors flex items-center gap-1.5 shrink-0">
                 📁 Browse File
                 <input
                   type="file"
@@ -479,7 +492,37 @@ export default function MenuManagementPage() {
                 />
               </label>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Paste image URL or click 'Browse File' to upload an image from your device.</p>
+
+            {/* Live Image Preview Card */}
+            {currentImage ? (
+              <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-amber-50/60 border border-amber-200/90 rounded-xl">
+                <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                  <img
+                    src={currentImage}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-900 truncate">Photo Selected & Ready</p>
+                  <p className="text-[10px] text-gray-500 truncate">
+                    {currentImage.startsWith('data:') ? 'Uploaded from device (Local file)' : currentImage}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setValue('image', '')}
+                  className="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <p className="text-[11px] text-gray-400 mt-1">Select any popular dish suggestion above or click 'Browse File' to upload your dish photo.</p>
+            )}
           </div>
 
           <div className="space-y-2 pt-2 border-t border-gray-100">

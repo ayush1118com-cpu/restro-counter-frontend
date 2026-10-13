@@ -209,9 +209,12 @@ export default function POSScreenPage() {
                     <div className="relative w-full aspect-4/3 bg-slate-100 overflow-hidden">
                       {item.image ? (
                         <img
-                          src={item.image}
+                          src={typeof item.image === 'string' ? item.image : (item.image as any)?.secure_url}
                           alt={item.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-300">

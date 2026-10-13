@@ -43,6 +43,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 50,
     description: 'Freshly frothed hot aromatic milk coffee',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Masala Chai',
@@ -50,6 +51,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 25,
     description: 'Authentic Indian spiced tea brewed with ginger and cardamom',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Lemon Iced Tea',
@@ -57,6 +59,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 70,
     description: 'Refreshing cold iced tea infused with natural lemon juice & mint',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Chocolate Milkshake',
@@ -64,6 +67,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 100,
     description: 'Thick chocolate milkshake prepared with premium cocoa & cream',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Fresh Lime Soda',
@@ -71,6 +75,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 50,
     description: 'Chilled soda with freshly squeezed lime, served sweet or salted',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&auto=format&fit=crop&q=80',
   },
 
   // Starters
@@ -88,6 +93,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 120,
     description: 'Crispy fried rolls filled with fresh julienned vegetables & spices',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'French Fries',
@@ -95,6 +101,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 80,
     description: 'Crispy golden salted potato fries served with dip',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Peri Peri Fries',
@@ -102,6 +109,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 95,
     description: 'Crisp potato fries dusted with tangy and fiery peri-peri seasoning',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Crispy Corn',
@@ -109,6 +117,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 130,
     description: 'Golden fried sweet corn kernels tossed with peppers & black pepper',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Hara Bhara Kabab',
@@ -116,6 +125,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 140,
     description: 'Pan-fried patties made of spinach, green peas, potatoes and mild spices',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&auto=format&fit=crop&q=80',
   },
 
   // Fast Food
@@ -125,6 +135,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 70,
     description: 'Crispy spiced potato patty topped with sliced tomato, onion & creamy mayo',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Cheese Burger',
@@ -132,6 +143,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 95,
     description: 'Vegetable patty loaded with cheddar cheese slice, fresh greens & herb dressing',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Margherita Pizza',
@@ -139,6 +151,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 160,
     description: 'Classic stone baked crust with rich herb tomato sauce & melting mozzarella',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Veg Farmhouse Pizza',
@@ -146,6 +159,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 210,
     description: 'Loaded with capsicum, crunchy onion, mushrooms, sweet corn & mozzarella',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Grilled Cheese Sandwich',
@@ -153,6 +167,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 90,
     description: 'Golden grilled sandwich bursting with molten cheese & herbs',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Veg Club Sandwich',
@@ -160,6 +175,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 110,
     description: 'Double-decker toasted sandwich packed with fresh veggies, cheese and spiced mint chutney',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Red Sauce Pasta',
@@ -167,6 +183,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 140,
     description: 'Penne pasta tossed in zesty garlic tomato sauce with Italian herbs',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281699?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'White Sauce Pasta',
@@ -174,6 +191,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 160,
     description: 'Creamy Alfredo penne pasta with garlic butter, sweet corn & cheese',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=400&auto=format&fit=crop&q=80',
   },
 
   // Chinese
@@ -183,6 +201,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 130,
     description: 'Vegetable dumplings tossed in dark soya, garlic & coriander gravy',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Chilli Paneer',
@@ -190,6 +209,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 180,
     description: 'Batter fried paneer cubes wok-tossed with onions, peppers & hot chilli sauce',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Veg Hakka Noodles',
@@ -197,6 +217,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 120,
     description: 'Wok tossed noodles with shredded crunchy vegetables and aromatic spices',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Veg Fried Rice',
@@ -204,6 +225,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 120,
     description: 'Fluffy fragrant rice stir fried with finely chopped garden vegetables',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Veg Steamed Momos',
@@ -211,6 +233,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 90,
     description: 'Thin flour dumplings filled with seasoned cabbage & carrot, served with fiery spicy chutney',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=400&auto=format&fit=crop&q=80',
   },
 
   // Main Course
@@ -220,6 +243,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 220,
     description: 'Soft paneer chunks simmered in rich creamy tomato and butter gravy',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Kadhai Paneer',
@@ -227,6 +251,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 210,
     description: 'Cottage cheese & capsicum cooked with freshly pounded kadhai spices',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Dal Makhani',
@@ -234,6 +259,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 180,
     description: 'Slow-cooked whole black lentils enriched with butter, cream & mild spices',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Dal Tadka',
@@ -241,6 +267,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 140,
     description: 'Yellow arhar lentils tempered with desi ghee, cumin, garlic & red chillies',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Shahi Paneer',
@@ -248,6 +275,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 230,
     description: 'Royal aromatic cottage cheese in sweet and savoury cashew nut gravy',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Mix Vegetable',
@@ -255,6 +283,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 160,
     description: 'Assorted seasonal vegetables sautéed with traditional Indian dry spices',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop&q=80',
   },
 
   // Breads / Roti
@@ -264,6 +293,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 15,
     description: 'Clay-oven baked whole wheat flatbread',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Butter Roti',
@@ -271,6 +301,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 20,
     description: 'Crisp whole wheat tandoori roti generously brushed with melted butter',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Butter Naan',
@@ -278,6 +309,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 45,
     description: 'Classic leavened flatbread baked in tandoor and butter glazed',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Garlic Naan',
@@ -285,6 +317,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 55,
     description: 'Tandoori naan topped with chopped roasted garlic and fresh coriander',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Lachha Paratha',
@@ -292,6 +325,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 40,
     description: 'Multi-layered flaky whole wheat paratha baked crisp in tandoor',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=400&auto=format&fit=crop&q=80',
   },
 
   // Rice
@@ -301,6 +335,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 110,
     description: 'Steamed basmati rice tempered with roasted cumin seeds and fresh ghee',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1516714435131-44d6b64dc6a2?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Veg Dum Biryani',
@@ -308,6 +343,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 180,
     description: 'Slow-cooked aromatic basmati rice layered with spiced vegetables & saffron',
     requiresKitchen: true,
+    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&auto=format&fit=crop&q=80',
   },
 
   // Desserts
@@ -317,6 +353,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 50,
     description: 'Warm golden fried khoya dumplings soaked in fragrant cardamom sugar syrup',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Vanilla Ice Cream',
@@ -324,6 +361,7 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 45,
     description: 'Classic smooth and creamy vanilla bean ice cream scoop',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=400&auto=format&fit=crop&q=80',
   },
   {
     name: 'Chocolate Brownie with Ice Cream',
@@ -331,5 +369,6 @@ export const POPULAR_MENU_SUGGESTIONS: MenuTemplateItem[] = [
     price: 120,
     description: 'Warm fudgy chocolate brownie served with a scoop of vanilla ice cream & hot fudge',
     requiresKitchen: false,
+    image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400&auto=format&fit=crop&q=80',
   },
 ];
