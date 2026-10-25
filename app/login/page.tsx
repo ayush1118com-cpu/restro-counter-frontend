@@ -173,7 +173,18 @@ export default function LoginPage() {
             <Input
               label="Email Address"
               type="email"
-              placeholder="e.g. restaurant@restrocounter.com"
+              placeholder={
+                selectedRoleDemo === 'KITCHEN_STAFF'
+                  ? 'e.g. kitchen.maheshsahu302003@gmail.com'
+                  : selectedRoleDemo === 'SUPER_ADMIN'
+                  ? 'e.g. admin@restrocounter.com'
+                  : 'e.g. maheshsahu302003@gmail.com'
+              }
+              hint={
+                selectedRoleDemo === 'KITCHEN_STAFF'
+                  ? 'Tip: Kitchen login ID format is kitchen.<owner-email>'
+                  : undefined
+              }
               {...register('email')}
               error={errors.email?.message}
             />

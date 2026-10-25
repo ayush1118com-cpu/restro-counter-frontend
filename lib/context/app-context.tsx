@@ -403,37 +403,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(err => console.error('Failed to fetch orders from DB:', err));
 
-    // Fetch Payments from backend database
-    authFetch(`${API_URL}/payments?limit=100`)
-      .then(resData => {
-        if (resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
-          const dbPayments: PaymentTransaction[] = resData.data.map((p: any) => ({
-            id: p._id || p.id,
-            restaurantId: p.restaurantId || currentUser.restaurantId,
-            orderId: (typeof p.orderId === 'object' && p.orderId?._id) ? p.orderId._id : (p.orderId || ''),
-            orderNumber: (typeof p.orderId === 'object' && p.orderId?.orderNumber) ? String(p.orderId.orderNumber) : (p.orderNumber ? String(p.orderNumber) : '1001'),
-            amount: p.amount,
-            method: p.method,
-            status: p.status === 'PAID' ? 'SUCCESS' : (p.status || 'SUCCESS'),
-            createdAt: p.paidAt || p.createdAt || new Date().toISOString(),
-          }));
+    // Fetch Payments from backend database (Only RESTAURANT_ADMIN)
+    if (currentUser.role === 'RESTAURANT_ADMIN') {
+      authFetch(`${API_URL}/payments?limit=100`)
+        .then(resData => {
+          if (resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
+            const dbPayments: PaymentTransaction[] = resData.data.map((p: any) => ({
+              id: p._id || p.id,
+              restaurantId: p.restaurantId || currentUser.restaurantId,
+              orderId: (typeof p.orderId === 'object' && p.orderId?._id) ? p.orderId._id : (p.orderId || ''),
+              orderNumber: (typeof p.orderId === 'object' && p.orderId?.orderNumber) ? String(p.orderId.orderNumber) : (p.orderNumber ? String(p.orderNumber) : '1001'),
+              amount: p.amount,
+              method: p.method,
+              status: p.status === 'PAID' ? 'SUCCESS' : (p.status || 'SUCCESS'),
+              createdAt: p.paidAt || p.createdAt || new Date().toISOString(),
+            }));
 
-          setPayments((prev) => {
-            const payMap = new Map<string, PaymentTransaction>();
-            // Keep only existing recorded payments that belong to this restaurant
-            prev
-              .filter((p) => !p.restaurantId || p.restaurantId === currentUser.restaurantId)
-              .forEach((p) => payMap.set(p.orderId || p.id, p));
-            dbPayments.forEach((p) => payMap.set(p.orderId || p.id, p));
-            const merged = Array.from(payMap.values()).sort(
-              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-            saveStorage('restro_payments', merged);
-            return merged;
-          });
-        }
-      })
-      .catch(err => console.error('Failed to fetch payments from DB:', err));
+            setPayments((prev) => {
+              const payMap = new Map<string, PaymentTransaction>();
+              // Keep only existing recorded payments that belong to this restaurant
+              prev
+                .filter((p) => !p.restaurantId || p.restaurantId === currentUser.restaurantId)
+                .forEach((p) => payMap.set(p.orderId || p.id, p));
+              dbPayments.forEach((p) => payMap.set(p.orderId || p.id, p));
+              const merged = Array.from(payMap.values()).sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+              saveStorage('restro_payments', merged);
+              return merged;
+            });
+          }
+        })
+        .catch(err => console.error('Failed to fetch payments from DB:', err));
+    }
 
     // Fetch Categories and Menu (For RESTAURANT_ADMIN & KITCHEN_STAFF)
     if (currentUser.role === 'RESTAURANT_ADMIN' || currentUser.role === 'KITCHEN_STAFF') {

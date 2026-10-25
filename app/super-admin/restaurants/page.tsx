@@ -321,9 +321,11 @@ export default function RestaurantsPage() {
           maxWidth="md"
         >
           <div className="space-y-4 py-2">
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/60 text-xs text-amber-900">
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/60 text-xs text-amber-900 space-y-1">
               <p className="font-bold">Outlet: {passwordModalRestro.name}</p>
-              <p className="text-[11px] text-gray-600 mt-0.5">Admin Email: {passwordModalRestro.email}</p>
+              <p className="text-[11px] text-gray-700"><b>Admin POS Email:</b> {passwordModalRestro.email}</p>
+              <p className="text-[11px] text-gray-700"><b>Kitchen KDS Email:</b> kitchen.{passwordModalRestro.email}</p>
+              <p className="text-[10px] text-amber-700 font-semibold italic mt-1">Both Admin and Kitchen logins will be updated with this new password.</p>
             </div>
 
             <div>
