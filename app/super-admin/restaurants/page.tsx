@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Eye, Edit, ShieldAlert, CheckCircle, Ban, Building2, ChefHat, Trash2, KeyRound } from 'lucide-react';
+import { Plus, Search, Eye, Edit, ShieldAlert, CheckCircle, Ban, Building2, ChefHat, Trash2, KeyRound, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -13,10 +13,11 @@ import { useApp } from '@/lib/context/app-context';
 import { Restaurant, RestaurantStatus } from '@/types';
 import { formatDate, formatINR } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal';
+import { RestaurantTablesModal } from '@/components/super-admin/restaurant-tables-modal';
 import Swal from 'sweetalert2';
 
 export default function RestaurantsPage() {
-  const { restaurants, updateRestaurantStatus, deleteRestaurant, updateRestaurantPassword } = useApp();
+  const { restaurants, updateRestaurantStatus, updateRestaurant, deleteRestaurant, updateRestaurantPassword } = useApp();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -24,6 +25,7 @@ export default function RestaurantsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [passwordModalRestro, setPasswordModalRestro] = useState<Restaurant | null>(null);
+  const [tablesModalRestro, setTablesModalRestro] = useState<Restaurant | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
@@ -92,8 +94,48 @@ export default function RestaurantsPage() {
       ),
     },
     {
-      header: 'Created At',
-      cell: (r) => <span className="text-gray-500">{formatDate(r.createdAt)}</span>,
+      header: 'Table QR & Scanner',
+      cell: (r) => (
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={async () => {
+              const next = !r.hasTableQrOrdering;
+              await updateRestaurant(r.id, { hasTableQrOrdering: next, tableQrEnabled: next });
+              Swal.fire({
+                icon: next ? 'success' : 'info',
+                title: next ? 'Table QR Ordering Enabled!' : 'Table QR Ordering Disabled',
+                text: next
+                  ? `Table QR ordering & Table management is now ENABLED for ${r.name}.`
+                  : `Table QR ordering is now DISABLED for ${r.name}.`,
+                timer: 2200,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-2xl font-sans' },
+              });
+            }}
+            className={`px-2 py-1 rounded-full text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+              r.hasTableQrOrdering
+                ? 'bg-purple-100 text-purple-900 border border-purple-300 hover:bg-purple-200'
+                : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+            }`}
+            title={r.hasTableQrOrdering ? 'Click to Disable Table QR' : 'Click to Enable Table QR for this Restaurant'}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${r.hasTableQrOrdering ? 'bg-purple-600 animate-pulse' : 'bg-gray-400'}`} />
+            <span>{r.hasTableQrOrdering ? 'ON' : 'OFF'}</span>
+          </button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTablesModalRestro(r)}
+            className="text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 h-6.5 rounded-lg flex items-center gap-1"
+            title="Manage Tables & Print QR Scanner Stands"
+          >
+            <QrCode className="w-3 h-3 text-purple-600" />
+            <span>Tables</span>
+          </Button>
+        </div>
+      ),
     },
     {
       header: 'Actions',
@@ -374,6 +416,13 @@ export default function RestaurantsPage() {
           </div>
         </Modal>
       )}
+
+      {/* Super Admin Table Scanner & Stands Management Modal */}
+      <RestaurantTablesModal
+        restaurant={tablesModalRestro}
+        isOpen={!!tablesModalRestro}
+        onClose={() => setTablesModalRestro(null)}
+      />
     </div>
   );
 }

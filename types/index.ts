@@ -30,6 +30,19 @@ export interface Restaurant {
   gstRate?: number;
   receiptHeader?: string;
   receiptFooter?: string;
+  hasTableQrOrdering?: boolean;
+  tableQrEnabled?: boolean;
+}
+
+export interface RestaurantTable {
+  id: string;
+  restaurantId: string;
+  tableNumber: string;
+  capacity?: number;
+  status: 'VACANT' | 'OCCUPIED' | 'RESERVED';
+  activeOrderId?: string;
+  qrCodeUrl?: string;
+  createdAt?: string;
 }
 
 export type LeadStatus = 'NEW' | 'CONTACTED' | 'DEMO_SCHEDULED' | 'CONVERTED' | 'CLOSED';
@@ -73,6 +86,7 @@ export type PaymentMethod = 'CASH' | 'UPI' | 'CARD';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'PARTIALLY_PAID' | 'REFUNDED';
 
 export type OrderStatus = 'NEW' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+export type OrderSource = 'COUNTER' | 'TABLE_QR';
 
 export interface OrderItem {
   itemId: string;
@@ -81,6 +95,7 @@ export interface OrderItem {
   quantity: number;
   requiresKitchen?: boolean;
   notes?: string;
+  addedAt?: string;
 }
 
 export interface Order {
@@ -103,6 +118,9 @@ export interface Order {
   notes?: string;
   paidAmount?: number;
   dueAmount?: number;
+  orderType?: OrderSource;
+  tableNumber?: string;
+  restaurantName?: string;
 }
 
 export interface PaymentTransaction {

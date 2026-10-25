@@ -131,6 +131,12 @@ export function OrderDetailsModal({
                     <span className="font-bold text-gray-900 text-sm">
                       {item.name}
                     </span>
+                    {item.addedAt && (
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
+                        <Clock className="w-2.5 h-2.5 text-amber-600" />
+                        +Added {formatTime(item.addedAt)}
+                      </span>
+                    )}
                   </div>
                   {item.notes && (
                     <div className="inline-block text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">

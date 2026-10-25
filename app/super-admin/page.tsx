@@ -162,8 +162,8 @@ export default function SuperAdminDashboard() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-gray-900 truncate">{rest.ownerName}</p>
-                      <p className="text-[11px] text-gray-500 font-semibold truncate">{rest.name}</p>
-                      <p className="text-[10px] text-amber-600 font-medium">{rest.city}</p>
+                      <p className="text-[11px] text-gray-500 font-semibold truncate">{rest.name} • <span className="text-amber-600 font-bold">{rest.ordersCount || 0} orders</span></p>
+                      <p className="text-[10px] text-emerald-600 font-bold">{formatINR(rest.salesTotal || 0)} sales • {rest.city}</p>
                     </div>
                   </div>
 

@@ -23,7 +23,16 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#fcfcfd] text-gray-900 font-sans antialiased selection:bg-amber-100 selection:text-amber-900" suppressHydrationWarning>
         <AppProvider>
           {children}
-          <Toaster position="top-right" richColors closeButton />
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton={false}
+            visibleToasts={1}
+            duration={2200}
+            toastOptions={{
+              className: 'font-sans text-xs font-semibold rounded-xl shadow-md border border-gray-100 py-2.5 px-3.5',
+            }}
+          />
         </AppProvider>
       </body>
     </html>

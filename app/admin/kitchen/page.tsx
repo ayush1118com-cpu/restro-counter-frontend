@@ -62,30 +62,50 @@ export default function KitchenDisplayScreenPage() {
           const kitchenItems = (order.items || []).filter((it: any) => it.requiresKitchen !== false);
           if (kitchenItems.length === 0) return;
 
-          if (!isMuted) {
-            playOrderNotificationSound();
+          // If direct counter order, notify kitchen immediately
+          if (order.orderType !== 'TABLE_QR') {
+            if (!isMuted) {
+              playOrderNotificationSound();
+            }
+            toast.success(`🔔 NEW KITCHEN TICKET! Order #${order.orderNumber || order.id}`, {
+              duration: 8000,
+            });
+            const targetId = order.id || order._id;
+            setNewlyArrivedIds((prev) => new Set(prev).add(targetId));
+            setTimeout(() => {
+              setNewlyArrivedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(targetId);
+                return next;
+              });
+            }, 3500);
           }
 
-          toast.success(`🔔 NEW KITCHEN TICKET! Order #${order.orderNumber || order.id}`, {
-            duration: 8000,
-          });
-
           const targetId = order.id || order._id;
-          setNewlyArrivedIds((prev) => new Set(prev).add(targetId));
-          setTimeout(() => {
-            setNewlyArrivedIds((prev) => {
-              const next = new Set(prev);
-              next.delete(targetId);
-              return next;
-            });
-          }, 3500);
-
           setOrders((prev) => {
             const exists = prev.some((o) => (o.id || o._id) === targetId);
             if (exists) return prev;
             return [{ ...order, items: kitchenItems, status: order.status || 'NEW' }, ...prev];
           });
         } else if (type === 'UPDATE_STATUS' && orderId && status) {
+          if (status === 'ACCEPTED') {
+            // Counter staff just approved table order! Alert kitchen!
+            if (!isMuted) {
+              playOrderNotificationSound();
+            }
+            toast.success(`🔔 ORDER ACCEPTED BY COUNTER! Sent to Kitchen`, {
+              duration: 8000,
+            });
+            setNewlyArrivedIds((prev) => new Set(prev).add(orderId));
+            setTimeout(() => {
+              setNewlyArrivedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(orderId);
+                return next;
+              });
+            }, 3500);
+          }
+
           setOrders((prev) =>
             prev.map((o) => {
               if ((o.id || o._id || o.orderNumber) === orderId) {
@@ -263,12 +283,20 @@ export default function KitchenDisplayScreenPage() {
   };
 
   // Filter columns
+  // For counter direct orders: show in NEW or ACCEPTED
+  // For Table QR orders: customer order is reviewed by Counter first, so only show on kitchen once ACCEPTED
   const newOrders = orders
     .map((o) => ({
       ...o,
       items: (o.items || []).filter((it: any) => it.requiresKitchen !== false),
     }))
-    .filter((o) => o.items.length > 0 && (o.status === 'NEW' || o.status === 'ACCEPTED'));
+    .filter((o) => {
+      if (o.items.length === 0) return false;
+      if (o.orderType === 'TABLE_QR') {
+        return o.status === 'ACCEPTED';
+      }
+      return o.status === 'NEW' || o.status === 'ACCEPTED';
+    });
 
   const preparingOrders = orders
     .map((o) => ({
@@ -501,6 +529,11 @@ export default function KitchenDisplayScreenPage() {
                               <span className="text-[19px] font-bold text-white tracking-tight">
                                 #{order.orderNumber}
                               </span>
+                              {order.tableNumber && (
+                                <span className="text-xs font-black bg-purple-500/20 text-purple-300 border border-purple-500/50 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                  🍽️ {order.tableNumber}
+                                </span>
+                              )}
                               <span className="text-[11px] font-semibold text-slate-300 bg-slate-900/90 border border-slate-700/60 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
                                 <Clock className="w-3 h-3 text-amber-400" /> {formatTime(order.createdAt)}
                               </span>
@@ -533,11 +566,17 @@ export default function KitchenDisplayScreenPage() {
                           {order.items.map((item: any, idx: number) => (
                             <div key={idx} className="space-y-1 text-[15px]">
                               <div className="flex justify-between items-center">
-                                <span className="font-semibold text-slate-100 flex items-center gap-2">
+                                <span className="font-semibold text-slate-100 flex items-center gap-2 flex-wrap">
                                   <span className="text-amber-400 font-bold text-base w-6 text-right">
                                     {item.quantity}×
                                   </span>
                                   {item.name}
+                                  {item.addedAt && (
+                                    <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 border border-amber-600/70 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                      <Clock className="w-2.5 h-2.5 text-amber-400" />
+                                      +Added {formatTime(item.addedAt)}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                               {item.notes && (
@@ -612,6 +651,11 @@ export default function KitchenDisplayScreenPage() {
                               <span className="text-[19px] font-bold text-orange-400 tracking-tight">
                                 #{order.orderNumber}
                               </span>
+                              {order.tableNumber && (
+                                <span className="text-xs font-black bg-purple-500/20 text-purple-300 border border-purple-500/50 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+                                  🍽️ {order.tableNumber}
+                                </span>
+                              )}
                               <span className="text-[11px] font-semibold text-slate-300 bg-slate-900/90 border border-slate-700/60 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
                                 <Clock className="w-3 h-3 text-amber-400" /> {formatTime(order.createdAt)}
                               </span>
@@ -638,11 +682,17 @@ export default function KitchenDisplayScreenPage() {
                           {order.items.map((item: any, idx: number) => (
                             <div key={idx} className="space-y-1 text-[15px]">
                               <div className="flex justify-between items-center">
-                                <span className="font-semibold text-slate-100 flex items-center gap-2">
+                                <span className="font-semibold text-slate-100 flex items-center gap-2 flex-wrap">
                                   <span className="text-orange-400 font-bold text-base w-6 text-right">
                                     {item.quantity}×
                                   </span>
                                   {item.name}
+                                  {item.addedAt && (
+                                    <span className="text-[10px] font-bold text-orange-300 bg-orange-950/80 border border-orange-600/70 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                      <Clock className="w-2.5 h-2.5 text-orange-400" />
+                                      +Added {formatTime(item.addedAt)}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                               {item.notes && (

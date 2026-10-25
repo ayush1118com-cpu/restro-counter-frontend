@@ -4,7 +4,7 @@ import React from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Order } from '@/types';
-import { formatINR, formatDate } from '@/lib/utils';
+import { formatINR, formatDate, formatTime } from '@/lib/utils';
 import { Printer, Download, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 // iosfoeiy
@@ -12,10 +12,13 @@ export interface BillPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: Order | null;
+  autoPrint?: boolean;
 }
 
-export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalProps) {
+export function BillPreviewModal({ isOpen, onClose, order, autoPrint = false }: BillPreviewModalProps) {
   const { currentUser, restaurants, currentRestaurant } = useApp();
+  const isPrintingRef = React.useRef(false);
+  const hasAutoPrintedRef = React.useRef(false);
 
   if (!order) return null;
 
@@ -44,7 +47,26 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
   const displayGstin = activeRestaurant?.gstin || '';
   const activeGstRate = activeRestaurant?.gstRate !== undefined ? activeRestaurant.gstRate : 5;
 
+  React.useEffect(() => {
+    if (isOpen && autoPrint && order && !hasAutoPrintedRef.current) {
+      hasAutoPrintedRef.current = true;
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+    if (!isOpen) {
+      hasAutoPrintedRef.current = false;
+    }
+  }, [isOpen, autoPrint, order]);
+
   const handlePrint = () => {
+    if (isPrintingRef.current) return;
+    isPrintingRef.current = true;
+    setTimeout(() => {
+      isPrintingRef.current = false;
+    }, 1500);
+
     const printContent = document.getElementById('printable-receipt');
     if (!printContent) return;
     
@@ -222,7 +244,14 @@ TOTAL:       ${formatINR(order.total)}
             {order.items.map((item, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="flex justify-between items-center text-gray-900 font-semibold">
-                  <span className="truncate max-w-[140px] font-bold">{item.name}</span>
+                  <span className="truncate max-w-[140px] font-bold">
+                    {item.name}
+                    {item.addedAt && (
+                      <span className="text-[9px] font-bold text-gray-500 block">
+                        (+Added {formatTime(item.addedAt)})
+                      </span>
+                    )}
+                  </span>
                   <span className="text-gray-800">
                     {item.quantity} × {formatINR(item.price)}
                   </span>

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Shield, Store, ArrowRight, Flame } from 'lucide-react';
+import { Shield, Store, ArrowRight, Flame, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
@@ -28,6 +28,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { loginAs, restaurants } = useApp();
   const [selectedRoleDemo, setSelectedRoleDemo] = useState<RoleTab>('RESTAURANT_ADMIN');
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -189,13 +190,37 @@ export default function LoginPage() {
               error={errors.email?.message}
             />
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              {...register('password')}
-              error={errors.password?.message}
-            />
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  {...register('password')}
+                  className={`w-full px-3.5 py-2 pr-10 text-sm bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all ${
+                    errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  tabIndex={-1}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1 transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-amber-600" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-xs text-red-600 mt-1 font-medium">{errors.password.message}</p>
+              )}
+            </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
               <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-600">

@@ -123,6 +123,8 @@ export function CitySelect({
       <div className="relative">
         <input
           type="text"
+          suppressHydrationWarning
+          autoComplete="off"
           placeholder={placeholder}
           value={query}
           onChange={(e) => {

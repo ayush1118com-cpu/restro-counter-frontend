@@ -17,6 +17,7 @@ import {
   KhataTransaction,
   Restaurant,
   RestaurantStatus,
+  RestaurantTable,
   User,
 } from '@/types';
 import {
@@ -81,6 +82,19 @@ interface AppContextType {
   orders: Order[];
   payments: PaymentTransaction[];
   khataAccounts: KhataAccount[];
+  tables: RestaurantTable[];
+  getRestaurantTables: (targetRestId: string) => RestaurantTable[];
+  addTable: (tableNumber: string, capacity?: number, targetRestId?: string) => void;
+  deleteTable: (tableId: string, targetRestId?: string) => void;
+  updateTableStatus: (tableId: string, status: 'VACANT' | 'OCCUPIED' | 'RESERVED') => void;
+  createTableOrder: (
+    tableNumber: string,
+    items: OrderItem[],
+    customerName?: string,
+    customerPhone?: string,
+    notes?: string,
+    targetRestaurantId?: string
+  ) => Promise<Order>;
   createOrder: (
     paymentMethod: PaymentMethod,
     customerPhone?: string,
@@ -154,12 +168,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [payments, setPayments] = useState<PaymentTransaction[]>(() => getInitialState('restro_payments', []));
   const [khataAccounts, setKhataAccounts] = useState<KhataAccount[]>(() => getInitialState('restro_khata', []));
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(() => getInitialState('restro_profile', null));
+  const [tables, setTables] = useState<RestaurantTable[]>(() => {
+    return getInitialState('restro_tables', [
+      { id: 'tbl_1', restaurantId: 'rest_1', tableNumber: 'Table 1', capacity: 4, status: 'VACANT' },
+      { id: 'tbl_2', restaurantId: 'rest_1', tableNumber: 'Table 2', capacity: 2, status: 'VACANT' },
+      { id: 'tbl_3', restaurantId: 'rest_1', tableNumber: 'Table 3', capacity: 6, status: 'VACANT' },
+      { id: 'tbl_4', restaurantId: 'rest_1', tableNumber: 'Table 4', capacity: 4, status: 'VACANT' },
+    ]);
+  });
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Helper to persist state to localStorage (caching for optimistic UI scoped per restaurant)
   const getRestroKey = (key: string, customRestId?: string) => {
+    if (key === 'user' || key === 'restro_restaurants' || key === 'accessToken') {
+      return key;
+    }
     const rId = customRestId || currentUser?.restaurantId;
     if (rId && currentUser?.role !== 'SUPER_ADMIN') {
       return `${key}_${rId}`;
@@ -195,11 +220,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const scopedMenu = getInitialState(`restro_menu_items_${restId}`, []);
     const scopedCategories = getInitialState(`restro_categories_${restId}`, MOCK_CATEGORIES);
     const scopedProfile = getInitialState(`restro_profile_${restId}`, null);
+    const scopedTables = getInitialState<RestaurantTable[]>(`restro_tables_${restId}`, [
+      { id: `tbl_${restId}_1`, restaurantId: restId, tableNumber: 'Table 1', capacity: 4, status: 'VACANT' },
+      { id: `tbl_${restId}_2`, restaurantId: restId, tableNumber: 'Table 2', capacity: 2, status: 'VACANT' },
+      { id: `tbl_${restId}_3`, restaurantId: restId, tableNumber: 'Table 3', capacity: 6, status: 'VACANT' },
+      { id: `tbl_${restId}_4`, restaurantId: restId, tableNumber: 'Table 4', capacity: 4, status: 'VACANT' },
+    ]);
 
     setOrders(scopedOrders);
     setPayments(scopedPayments);
     setKhataAccounts(scopedKhata);
-    if (scopedMenu && scopedMenu.length > 0) {
+    setTables(scopedTables);
+    if (scopedMenu && scopedMenu.length >= 50) {
       setMenuItems(scopedMenu);
     } else {
       setMenuItems(MOCK_MENU_ITEMS);
@@ -236,6 +268,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               ordersCount: 0,
               salesTotal: 0,
               activeMenuCount: 0,
+              hasTableQrOrdering: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               createdAt: r.createdAt || new Date().toISOString(),
             };
             setCurrentRestaurant(mapped);
@@ -328,7 +361,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // MONGODB SYNC: Fetch real orders from backend
   useEffect(() => {
-    if (typeof window === 'undefined' || !currentUser?.restaurantId || currentUser.role === 'SUPER_ADMIN') return;
+    if (typeof window === 'undefined' || !currentUser) return;
     
     const token = localStorage.getItem('accessToken');
     if (!token) return;
@@ -340,8 +373,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const dbOrders: Order[] = resData.data.map((dbOrder: any) => ({
             id: dbOrder._id || dbOrder.id,
             orderNumber: dbOrder.orderNumber.toString(),
-            restaurantId: dbOrder.restaurantId,
-            items: dbOrder.items.map((i: any) => ({
+            restaurantId: typeof dbOrder.restaurantId === 'object' ? (dbOrder.restaurantId?._id || dbOrder.restaurantId?.id) : dbOrder.restaurantId,
+            restaurantName: typeof dbOrder.restaurantId === 'object' ? dbOrder.restaurantId?.name : undefined,
+            items: (dbOrder.items || []).map((i: any) => ({
               itemId: i.menuItemId || i.itemId,
               name: i.name,
               price: i.price,
@@ -356,6 +390,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             paymentMethod: dbOrder.paymentMethod,
             paymentStatus: dbOrder.paymentStatus,
             status: dbOrder.orderStatus || dbOrder.status,
+            orderType: dbOrder.orderType || 'COUNTER',
+            tableNumber: dbOrder.tableNumber || '',
             createdAt: dbOrder.createdAt,
             updatedAt: dbOrder.updatedAt,
             customerName: dbOrder.customerName,
@@ -478,14 +514,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })
         .catch(err => console.error('Failed to fetch categories:', err));
 
-      authFetch(`${API_URL}/menu`)
+      authFetch(`${API_URL}/menu?limit=500&sortBy=createdAt&sortOrder=asc`)
         .then(resData => {
           if (resData.success && Array.isArray(resData.data)) {
             const itemsToUse = resData.data.length > 0 ? resData.data : MOCK_MENU_ITEMS;
             const dbMenuItems = itemsToUse.map((m: any) => ({
               id: m._id || m.id,
-              categoryId: m.categoryId?._id || m.categoryId || 'cat_general',
-              categoryName: m.categoryId?.name || m.categoryName || 'General',
+              categoryId: (typeof m.categoryId === 'object' && m.categoryId?._id) ? m.categoryId._id : (m.categoryId || 'cat_general'),
+              categoryName: (typeof m.categoryId === 'object' && m.categoryId?.name) ? m.categoryId.name : (m.categoryName || 'General'),
               name: m.name,
               description: m.description || '',
               price: m.price,
@@ -497,7 +533,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setMenuItems(dbMenuItems);
             saveStorage('restro_menu_items', dbMenuItems);
 
-            // Auto-derive categories from the single /menu JSON response!
+            // Calculate precise itemCount for each category from the full menu
             setCategories((prev) => {
               const catMap = new Map<string, Category>();
               catMap.set('cat_all', {
@@ -508,30 +544,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 isActive: true,
               });
 
-              // Keep existing categories
+              // Keep all existing categories and compute their real itemCount from dbMenuItems
               prev.forEach((c) => {
-                if (c.id !== 'cat_all') catMap.set(c.id, { ...c, itemCount: 0 });
+                if (c.id !== 'cat_all') {
+                  const count = dbMenuItems.filter(
+                    (it: any) => it.categoryId === c.id || (it.categoryName && it.categoryName.toLowerCase() === c.name.toLowerCase())
+                  ).length;
+                  catMap.set(c.id, { ...c, itemCount: count });
+                }
               });
 
-              // Add / update categories from menu items
+              // Add any additional categories found on menu items
               dbMenuItems.forEach((item: any) => {
                 const cId = item.categoryId;
                 const cName = item.categoryName || 'General';
                 if (cId && cId !== 'cat_all') {
-                  if (!catMap.has(cId)) {
+                  const existing = Array.from(catMap.values()).find(
+                    (c) => c.id === cId || c.name.toLowerCase() === cName.toLowerCase()
+                  );
+                  if (!existing) {
+                    const count = dbMenuItems.filter(
+                      (it: any) => it.categoryId === cId || (it.categoryName && it.categoryName.toLowerCase() === cName.toLowerCase())
+                    ).length;
                     catMap.set(cId, {
                       id: cId,
                       name: cName,
                       description: '',
-                      itemCount: 1,
+                      itemCount: count,
                       isActive: true,
                     });
-                  } else {
-                    const existing = catMap.get(cId)!;
-                    existing.itemCount = (existing.itemCount || 0) + 1;
-                    if (!existing.name || existing.name === 'General') {
-                      existing.name = cName;
-                    }
                   }
                 }
               });
@@ -566,9 +607,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             address: dbRest.address,
             city: dbRest.city,
             status: dbRest.status,
-            ordersCount: dbRest.metrics?.totalOrders || 0,
-            salesTotal: dbRest.metrics?.totalRevenue || 0,
+            ordersCount: dbRest.ordersCount ?? dbRest.metrics?.totalOrders ?? 0,
+            salesTotal: dbRest.salesTotal ?? dbRest.metrics?.totalRevenue ?? 0,
             activeMenuCount: 0,
+            hasTableQrOrdering: dbRest.tableQrEnabled !== undefined ? dbRest.tableQrEnabled : (dbRest.hasTableQrOrdering ?? true),
             createdAt: dbRest.createdAt
           }));
           
@@ -663,48 +705,98 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Global Cross-computer sync (Socket.IO)
       const token = localStorage.getItem('accessToken');
-      if (token && currentUser && currentUser.role !== 'SUPER_ADMIN') {
+      if (token && currentUser) {
         import('socket.io-client').then(({ io }) => {
           socket = io(SOCKET_URL, { auth: { token }, transports: ['websocket', 'polling'] });
 
           socket.on('new-order', (payload: any) => {
             if (payload?.order) {
               const newOrder = payload.order;
-              if (newOrder.restaurantId && currentUser?.restaurantId && String(newOrder.restaurantId) !== String(currentUser.restaurantId)) return;
-              setOrders((prev) => {
-                if (prev.some((o) => (o.id || o.orderNumber) === (newOrder._id || newOrder.id || newOrder.orderNumber))) return prev;
-                const normalized = {
-                  id: newOrder._id || newOrder.id,
-                  orderNumber: newOrder.orderNumber?.toString(),
-                  restaurantId: newOrder.restaurantId,
-                  items: newOrder.items.map((i: any) => ({
-                    itemId: i.menuItemId || i.itemId, name: i.name, price: i.price, quantity: i.quantity, requiresKitchen: i.requiresKitchen, notes: i.notes
-                  })),
-                  subtotal: newOrder.subtotal, tax: newOrder.tax, discount: newOrder.discount, total: newOrder.grandTotal || newOrder.total,
-                  paymentMethod: newOrder.paymentMethod, paymentStatus: newOrder.paymentStatus, status: newOrder.orderStatus || newOrder.status,
-                  createdAt: newOrder.createdAt, updatedAt: newOrder.updatedAt, customerName: newOrder.customerName, customerPhone: newOrder.customerPhone,
-                };
-                return [normalized as Order, ...prev];
-              });
+              const restId = typeof newOrder.restaurantId === 'object'
+                ? (newOrder.restaurantId?._id || newOrder.restaurantId?.id)
+                : newOrder.restaurantId;
+              const restName = typeof newOrder.restaurantId === 'object' ? newOrder.restaurantId?.name : undefined;
 
-              // Add to real-time live payments
-              const payItem: PaymentTransaction = {
-                id: `pay_${newOrder._id || newOrder.id}`,
-                restaurantId: newOrder.restaurantId || currentUser?.restaurantId,
-                orderId: newOrder._id || newOrder.id,
-                orderNumber: newOrder.orderNumber?.toString() || '1001',
-                amount: newOrder.grandTotal || newOrder.total,
-                method: newOrder.paymentMethod || 'CASH',
-                status: 'SUCCESS',
+              if (currentUser.role !== 'SUPER_ADMIN' && restId && currentUser.restaurantId && String(restId) !== String(currentUser.restaurantId)) {
+                return;
+              }
+
+              const normalized: Order = {
+                id: newOrder._id || newOrder.id,
+                orderNumber: newOrder.orderNumber?.toString(),
+                restaurantId: restId,
+                restaurantName: restName,
+                items: (newOrder.items || []).map((i: any) => ({
+                  itemId: i.menuItemId || i.itemId,
+                  name: i.name,
+                  price: i.price,
+                  quantity: i.quantity,
+                  requiresKitchen: i.requiresKitchen,
+                  notes: i.notes,
+                })),
+                subtotal: newOrder.subtotal,
+                tax: newOrder.tax,
+                discount: newOrder.discount,
+                total: newOrder.grandTotal || newOrder.total,
+                paymentMethod: newOrder.paymentMethod,
+                paymentStatus: newOrder.paymentStatus,
+                status: newOrder.orderStatus || newOrder.status,
+                orderType: newOrder.orderType || 'COUNTER',
+                tableNumber: newOrder.tableNumber || '',
+                notes: newOrder.notes,
                 createdAt: newOrder.createdAt || new Date().toISOString(),
+                updatedAt: newOrder.updatedAt || new Date().toISOString(),
+                customerName: newOrder.customerName,
+                customerPhone: newOrder.customerPhone,
               };
 
-              setPayments((prev) => {
-                if (prev.some((p) => p.orderId === payItem.orderId || p.orderNumber === payItem.orderNumber)) return prev;
-                const updated = [payItem, ...prev];
-                saveStorage('restro_payments', updated);
-                return updated;
+              setOrders((prev) => {
+                if (prev.some((o) => (o.id || o.orderNumber) === (normalized.id || normalized.orderNumber))) return prev;
+                return [normalized, ...prev];
               });
+
+              // If Super Admin, update aggregate restaurant metrics live
+              if (currentUser.role === 'SUPER_ADMIN' && restId) {
+                setRestaurants((prevRests) =>
+                  prevRests.map((r) =>
+                    String(r.id) === String(restId)
+                      ? {
+                          ...r,
+                          ordersCount: (r.ordersCount || 0) + 1,
+                          salesTotal: (r.salesTotal || 0) + (normalized.total || 0),
+                        }
+                      : r
+                  )
+                );
+              }
+
+              // Add to real-time live payments if paid
+              const payItem: PaymentTransaction = {
+                id: `pay_${normalized.id}`,
+                restaurantId: normalized.restaurantId,
+                orderId: normalized.id,
+                orderNumber: normalized.orderNumber || '1001',
+                amount: normalized.total,
+                method: normalized.paymentMethod || 'CASH',
+                status: 'SUCCESS',
+                createdAt: normalized.createdAt,
+              };
+
+              if (normalized.paymentStatus === 'PAID') {
+                setPayments((prev) => {
+                  if (prev.some((p) => p.orderId === payItem.orderId || p.orderNumber === payItem.orderNumber)) return prev;
+                  const updated = [payItem, ...prev];
+                  saveStorage('restro_payments', updated);
+                  return updated;
+                });
+              }
+
+              playOrderNotificationSound();
+              if (currentUser.role === 'SUPER_ADMIN') {
+                toast.success(`⚡ Live Order #${normalized.orderNumber} received${restName ? ` at ${restName}` : ''}! (₹${normalized.total})`);
+              } else {
+                toast.success(`NEW ${normalized.orderType === 'TABLE_QR' ? `TABLE ORDER (${normalized.tableNumber || 'QR'})` : 'COUNTER ORDER'} #${normalized.orderNumber}!`);
+              }
             }
           });
 
@@ -876,13 +968,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateRestaurant = async (id: string, data: Partial<Restaurant>) => {
+    const patchPayload: any = {
+      ...data,
+      ...(data.hasTableQrOrdering !== undefined ? { tableQrEnabled: data.hasTableQrOrdering } : {}),
+      ...(data.tableQrEnabled !== undefined ? { hasTableQrOrdering: data.tableQrEnabled } : {}),
+    };
+
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (token) {
       try {
         const res = await fetch(`${API_URL}/restaurants/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(data)
+          body: JSON.stringify(patchPayload)
         });
         const resData = await res.json();
         if (!resData.success) {
@@ -894,7 +992,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return;
       }
     }
-    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
+    setRestaurants((prev) => {
+      const updated = prev.map((r) => (r.id === id ? { ...r, ...data, ...patchPayload } : r));
+      saveStorage('restro_restaurants', updated);
+      return updated;
+    });
+    setCurrentRestaurant((prev) => (prev && prev.id === id ? { ...prev, ...data, ...patchPayload } : prev));
+
+    if (typeof window !== 'undefined') {
+      const profileStr = localStorage.getItem('restro_profile');
+      if (profileStr) {
+        try {
+          const profile = JSON.parse(profileStr);
+          if (profile.id === id || profile.restaurantId === id) {
+            localStorage.setItem('restro_profile', JSON.stringify({ ...profile, ...data, ...patchPayload }));
+          }
+        } catch (_) {}
+      }
+    }
+
     toast.success('Restaurant details updated');
   };
 
@@ -1536,13 +1652,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
+              Authorization: `Bearer ${token}`,
+              ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {}),
             },
             body: JSON.stringify({
-              items: newOrder.items.map(i => ({
+              items: newOrder.items.map((i) => ({
                 menuItemId: i.itemId,
+                name: i.name,
+                price: i.price,
                 quantity: i.quantity,
-                notes: i.notes
+                requiresKitchen: i.requiresKitchen,
+                notes: i.notes,
               })),
               paymentMethod: newOrder.paymentMethod,
               discount: newOrder.discount,
@@ -1550,8 +1670,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               confirmPayment: isFullPaid,
               customerName: newOrder.customerName,
               customerPhone: newOrder.customerPhone,
-              vehicleNumber: newOrder.vehicleNumber
-            })
+              vehicleNumber: newOrder.vehicleNumber,
+              orderType: newOrder.orderType || 'COUNTER',
+              tableNumber: newOrder.tableNumber,
+              notes: newOrder.notes,
+            }),
           });
           const resData = await res.json();
           if (resData.success) {
@@ -1637,7 +1760,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {}),
           },
           body: JSON.stringify({ status })
         }).catch(err => console.error('Failed to sync status to DB:', err));
@@ -1707,6 +1831,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               quantity: i.quantity,
               requiresKitchen: i.requiresKitchen,
               notes: i.notes,
+              addedAt: i.addedAt || i.updatedAt || new Date().toISOString(),
             })),
             subtotal: dbOrder.subtotal,
             tax: dbOrder.tax,
@@ -1745,6 +1870,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Local fallback
+    const nowTime = new Date().toISOString();
     const updatedItems = [...targetOrder.items];
     let hasKitchen = false;
     for (const ni of newItems) {
@@ -1754,6 +1880,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updatedItems[idx] = {
           ...updatedItems[idx],
           quantity: updatedItems[idx].quantity + ni.quantity,
+          addedAt: nowTime,
         };
       } else {
         updatedItems.push({
@@ -1762,6 +1889,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           price: ni.price,
           quantity: ni.quantity,
           requiresKitchen: ni.requiresKitchen,
+          addedAt: nowTime,
         });
       }
     }
@@ -1799,6 +1927,263 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     toast.success(`Items added to Order #${locallyUpdatedOrder.orderNumber}`);
     return locallyUpdatedOrder;
+  };
+
+  // Table Management Actions
+  const getRestaurantTables = (targetRestId: string): RestaurantTable[] => {
+    if (!targetRestId) return tables;
+    if (currentUser?.restaurantId === targetRestId) return tables;
+    const key = `restro_tables_${targetRestId}`;
+    return getInitialState<RestaurantTable[]>(key, [
+      { id: `tbl_${targetRestId}_1`, restaurantId: targetRestId, tableNumber: 'Table 1', capacity: 4, status: 'VACANT' },
+      { id: `tbl_${targetRestId}_2`, restaurantId: targetRestId, tableNumber: 'Table 2', capacity: 2, status: 'VACANT' },
+      { id: `tbl_${targetRestId}_3`, restaurantId: targetRestId, tableNumber: 'Table 3', capacity: 6, status: 'VACANT' },
+      { id: `tbl_${targetRestId}_4`, restaurantId: targetRestId, tableNumber: 'Table 4', capacity: 4, status: 'VACANT' },
+    ]);
+  };
+
+  const addTable = (tableNumber: string, capacity: number = 4, targetRestId?: string) => {
+    const restId = targetRestId || currentUser?.restaurantId || 'rest_1';
+    const newTable: RestaurantTable = {
+      id: `tbl_${Date.now()}`,
+      restaurantId: restId,
+      tableNumber,
+      capacity,
+      status: 'VACANT',
+      createdAt: new Date().toISOString(),
+    };
+
+    if (targetRestId && targetRestId !== currentUser?.restaurantId) {
+      const existing = getRestaurantTables(targetRestId);
+      const updated = [...existing, newTable];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`restro_tables_${targetRestId}`, JSON.stringify(updated));
+      }
+      toast.success(`${tableNumber} added to restaurant`);
+      return;
+    }
+
+    setTables((prev) => {
+      const updated = [...prev, newTable];
+      saveStorage('restro_tables', updated);
+      return updated;
+    });
+    toast.success(`${tableNumber} added successfully`);
+  };
+
+  const deleteTable = (tableId: string, targetRestId?: string) => {
+    if (targetRestId && targetRestId !== currentUser?.restaurantId) {
+      const existing = getRestaurantTables(targetRestId);
+      const updated = existing.filter((t) => t.id !== tableId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`restro_tables_${targetRestId}`, JSON.stringify(updated));
+      }
+      toast.success('Table removed');
+      return;
+    }
+
+    setTables((prev) => {
+      const updated = prev.filter((t) => t.id !== tableId);
+      saveStorage('restro_tables', updated);
+      return updated;
+    });
+    toast.success('Table removed');
+  };
+
+  const updateTableStatus = (tableId: string, status: 'VACANT' | 'OCCUPIED' | 'RESERVED') => {
+    setTables((prev) => {
+      const updated = prev.map((t) => (t.id === tableId ? { ...t, status } : t));
+      saveStorage('restro_tables', updated);
+      return updated;
+    });
+  };
+
+  // Create Order specifically originating from Customer Table QR Scanner
+  const createTableOrder = async (
+    tableNumber: string,
+    items: OrderItem[],
+    customerName?: string,
+    customerPhone?: string,
+    notes?: string,
+    targetRestaurantId?: string
+  ): Promise<Order> => {
+    const restId = targetRestaurantId || currentUser?.restaurantId || currentRestaurant?.id || 'rest_1';
+    const activeGstRate = currentRestaurant?.gstRate !== undefined ? Number(currentRestaurant.gstRate) : 5;
+    const subtotal = items.reduce((sum, it) => sum + it.price * it.quantity, 0);
+    const tax = Math.round(subtotal * (activeGstRate / 100));
+    const total = subtotal + tax;
+
+    const orderNum = (1025 + orders.length + 1).toString();
+    const hasKitchenItems = items.some((ci) => ci.requiresKitchen !== false);
+
+    let newOrder: Order = {
+      id: `tbl_ord_${Date.now()}`,
+      orderNumber: orderNum,
+      restaurantId: restId,
+      items: items.map((it) => ({
+        ...it,
+        addedAt: new Date().toISOString(),
+        requiresKitchen: it.requiresKitchen !== false,
+      })),
+      subtotal,
+      tax,
+      discount: 0,
+      total,
+      paidAmount: 0,
+      dueAmount: total,
+      paymentMethod: 'CASH',
+      paymentStatus: 'PENDING',
+      status: 'NEW', // New Order pending Counter Accept
+      orderType: 'TABLE_QR',
+      tableNumber,
+      customerName: customerName || `${tableNumber} Guest`,
+      customerPhone: customerPhone || undefined,
+      notes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Check if table currently has an active running session/order
+    const existingActiveOrder = orders.find(
+      (o) =>
+        o.tableNumber?.toLowerCase() === tableNumber.toLowerCase() &&
+        (o.status === 'NEW' || o.status === 'ACCEPTED' || o.status === 'PREPARING' || o.status === 'READY')
+    );
+
+    // Push Table Order to Backend Public API (backend handles automatic merge if active order exists)
+    let isAppended = false;
+    let finalOrderData: any = null;
+
+    try {
+      const res = await fetch(`${API_URL}/orders/public-table`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantId: restId,
+          tableNumber,
+          customerName: customerName || `${tableNumber} Guest`,
+          customerPhone: customerPhone || undefined,
+          notes,
+          items: items.map((it) => ({
+            menuItemId: it.itemId,
+            name: it.name,
+            price: it.price,
+            quantity: it.quantity,
+            requiresKitchen: it.requiresKitchen !== false,
+            notes: it.notes,
+          })),
+        }),
+      });
+      const resData = await res.json();
+      if (resData.success && resData.data) {
+        finalOrderData = resData.data;
+        isAppended = Boolean(resData.data.isAppended);
+      }
+    } catch (apiErr) {
+      console.error('Failed to post public table order to API:', apiErr);
+    }
+
+    // IF MERGING INTO EXISTING ACTIVE TABLE ORDER (Single Consolidated Bill)
+    if (existingActiveOrder || isAppended) {
+      const targetOrder = existingActiveOrder || finalOrderData;
+      const mergedItems = [...(existingActiveOrder?.items || [])];
+
+      for (const newItem of items) {
+        const idx = mergedItems.findIndex(
+          (mi) => mi.name.toLowerCase() === newItem.name.toLowerCase() && (mi.notes || '') === (newItem.notes || '')
+        );
+        if (idx > -1) {
+          mergedItems[idx] = {
+            ...mergedItems[idx],
+            quantity: mergedItems[idx].quantity + newItem.quantity,
+          };
+        } else {
+          mergedItems.push({
+            ...newItem,
+            addedAt: new Date().toISOString(),
+            requiresKitchen: newItem.requiresKitchen !== false,
+          });
+        }
+      }
+
+      const newSubtotal = mergedItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+      const newTax = Math.round(newSubtotal * (activeGstRate / 100));
+      const newTotal = newSubtotal + newTax - ((existingActiveOrder?.discount) || 0);
+
+      const consolidatedOrder: Order = {
+        ...(existingActiveOrder || newOrder),
+        id: finalOrderData?._id || finalOrderData?.id || existingActiveOrder?.id || newOrder.id,
+        orderNumber: (finalOrderData?.orderNumber || existingActiveOrder?.orderNumber || newOrder.orderNumber).toString(),
+        items: finalOrderData?.items && finalOrderData.items.length >= mergedItems.length ? finalOrderData.items.map((fi: any) => ({
+          itemId: fi.menuItemId || fi._id || `item_${Date.now()}`,
+          name: fi.name,
+          price: fi.price,
+          quantity: fi.quantity,
+          requiresKitchen: fi.requiresKitchen !== false,
+          notes: fi.notes,
+        })) : mergedItems,
+        subtotal: finalOrderData?.subtotal || newSubtotal,
+        tax: finalOrderData?.tax || newTax,
+        total: finalOrderData?.grandTotal || finalOrderData?.total || newTotal,
+        dueAmount: (finalOrderData?.grandTotal || newTotal) - ((existingActiveOrder?.paidAmount) || 0),
+        status: existingActiveOrder?.status === 'READY' ? 'PREPARING' : (existingActiveOrder?.status || 'NEW'),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setOrders((prev) => {
+        const orderExists = prev.some((o) => o.id === consolidatedOrder.id || o.orderNumber === consolidatedOrder.orderNumber);
+        const updated = orderExists
+          ? prev.map((o) => (o.id === consolidatedOrder.id || o.orderNumber === consolidatedOrder.orderNumber ? consolidatedOrder : o))
+          : [consolidatedOrder, ...prev];
+        saveStorage('restro_orders', updated);
+        return updated;
+      });
+
+      playOrderNotificationSound();
+      toast.success(`Items added to ${tableNumber} Order #${consolidatedOrder.orderNumber}! (Single Consolidated Bill)`);
+      return consolidatedOrder;
+    }
+
+    // NEW FRESH TABLE ORDER
+    if (finalOrderData) {
+      newOrder = {
+        ...newOrder,
+        id: finalOrderData._id || finalOrderData.id,
+        orderNumber: (finalOrderData.orderNumber || newOrder.orderNumber).toString(),
+        createdAt: finalOrderData.createdAt || newOrder.createdAt,
+        updatedAt: finalOrderData.updatedAt || newOrder.updatedAt,
+      };
+    }
+
+    setOrders((prev) => {
+      const updated = [newOrder, ...prev];
+      saveStorage('restro_orders', updated);
+      return updated;
+    });
+
+    // Mark table as OCCUPIED
+    setTables((prev) => {
+      const updated = prev.map((t) =>
+        t.tableNumber.toLowerCase() === tableNumber.toLowerCase()
+          ? { ...t, status: 'OCCUPIED' as const, activeOrderId: newOrder.id }
+          : t
+      );
+      saveStorage('restro_tables', updated);
+      return updated;
+    });
+
+    // Broadcast in real-time to Counter Admin tab and Kitchen
+    if (typeof window !== 'undefined') {
+      try {
+        const channelName = restId ? `restro_orders_sync_${restId}` : 'restro_orders_sync';
+        const channel = new BroadcastChannel(channelName);
+        channel.postMessage({ type: 'NEW_ORDER', order: newOrder });
+        channel.close();
+      } catch (e) {}
+    }
+
+    playOrderNotificationSound();
+    return newOrder;
   };
 
   return (
@@ -1840,6 +2225,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         orders,
         payments,
         khataAccounts,
+        tables,
+        getRestaurantTables,
+        addTable,
+        deleteTable,
+        updateTableStatus,
+        createTableOrder,
         createOrder,
         recordKhataPayment,
         getCustomerKhata,

@@ -16,6 +16,7 @@ export default function LiveOrdersPage() {
   const [activeTab, setActiveTab] = useState<string>('ALL');
   const [selectedBillOrder, setSelectedBillOrder] = useState<Order | null>(null);
   const [selectedAddItemsOrder, setSelectedAddItemsOrder] = useState<Order | null>(null);
+  const [autoPrintBill, setAutoPrintBill] = useState(false);
 
   const tabs: TabItem[] = [
     { id: 'ALL', label: 'All Orders', count: orders.length },
@@ -74,6 +75,11 @@ export default function LiveOrdersPage() {
                 <span className="text-sm font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60">
                   #{order.orderNumber}
                 </span>
+                {order.tableNumber && (
+                  <span className="text-xs font-black bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs">
+                    🍽️ {order.tableNumber}
+                  </span>
+                )}
                 <span className="text-xs text-gray-700 font-bold bg-gray-50 border border-gray-200/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
                   <Clock className="w-3.5 h-3.5 text-amber-500" />
                   <span>{formatTime(order.createdAt)}</span>
@@ -109,8 +115,16 @@ export default function LiveOrdersPage() {
             <div className="space-y-2 py-1">
               {order.items.map((item, idx) => (
                 <div key={idx} className="space-y-0.5">
-                  <div className="flex justify-between text-xs font-semibold text-gray-800">
-                    <span>{item.name} × {item.quantity}</span>
+                  <div className="flex justify-between items-center text-xs font-semibold text-gray-800">
+                    <span className="flex items-center gap-1.5 flex-wrap">
+                      <span>{item.name} × {item.quantity}</span>
+                      {item.addedAt && (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.2 rounded-md flex items-center gap-0.5" title="Added later to this order">
+                          <Clock className="w-2.5 h-2.5 text-amber-600" />
+                          +Added {formatTime(item.addedAt)}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-gray-500">{formatINR(item.price * item.quantity)}</span>
                   </div>
                   {item.notes && (
@@ -136,8 +150,19 @@ export default function LiveOrdersPage() {
               </div>
             </div>
 
-            {/* Action Buttons: Add Items, View Bill and Cancel */}
+            {/* Action Buttons: Accept Order, Add Items, View Bill and Cancel */}
             <div className="pt-2 flex flex-col gap-2">
+              {order.status === 'NEW' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => updateOrderStatus(order.id, 'ACCEPTED')}
+                  className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center justify-center gap-1.5 py-2 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Accept Order & Send to Kitchen
+                </Button>
+              )}
+
               <div className="flex gap-2">
                 {order.status !== 'CANCELLED' && (
                   <Button
@@ -178,8 +203,12 @@ export default function LiveOrdersPage() {
       {selectedBillOrder && (
         <BillPreviewModal
           isOpen={!!selectedBillOrder}
-          onClose={() => setSelectedBillOrder(null)}
+          onClose={() => {
+            setSelectedBillOrder(null);
+            setAutoPrintBill(false);
+          }}
           order={selectedBillOrder}
+          autoPrint={autoPrintBill}
         />
       )}
 
@@ -190,10 +219,8 @@ export default function LiveOrdersPage() {
           onClose={() => setSelectedAddItemsOrder(null)}
           order={selectedAddItemsOrder}
           onPrintBill={(ord) => {
+            setAutoPrintBill(true);
             setSelectedBillOrder(ord);
-            setTimeout(() => {
-              window.print();
-            }, 300);
           }}
         />
       )}

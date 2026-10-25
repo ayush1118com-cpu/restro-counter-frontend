@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Ban,
   Trash2,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ import { useApp } from '@/lib/context/app-context';
 import { formatDate, formatINR } from '@/lib/utils';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Order, Restaurant } from '@/types';
+import { RestaurantTablesModal } from '@/components/super-admin/restaurant-tables-modal';
 import Swal from 'sweetalert2';
 
 import { API_URL } from '@/lib/config';
@@ -31,12 +33,13 @@ import { API_URL } from '@/lib/config';
 export default function RestaurantDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { restaurants, orders, updateRestaurantStatus, deleteRestaurant } = useApp();
+  const { restaurants, orders, updateRestaurantStatus, updateRestaurant, deleteRestaurant } = useApp();
 
   const restId = (params?.id as string) || '';
   const contextRest = restaurants.find((r) => r.id === restId);
   const [liveRestaurant, setLiveRestaurant] = React.useState<Restaurant | null>(contextRest || null);
   const [isLoading, setIsLoading] = React.useState(!contextRest);
+  const [showTablesModal, setShowTablesModal] = React.useState(false);
 
   React.useEffect(() => {
     if (contextRest) {
@@ -67,6 +70,7 @@ export default function RestaurantDetailsPage() {
               ordersCount: r.metrics?.totalOrders || 0,
               salesTotal: r.metrics?.totalRevenue || 0,
               activeMenuCount: 0,
+              hasTableQrOrdering: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               createdAt: r.createdAt,
             });
           }
@@ -236,6 +240,70 @@ export default function RestaurantDetailsPage() {
               <span>Onboarded Date:</span>
               <span className="font-semibold text-gray-900">{formatDate(restaurant.createdAt)}</span>
             </div>
+
+            {/* Feature Access & Module Permissions (RBAC) */}
+            <div className="pt-4 border-t border-gray-100 space-y-2">
+              <p className="text-gray-900 font-bold text-xs flex items-center justify-between">
+                <span>Modules & Permissions</span>
+                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-black">SUPER ADMIN</span>
+              </p>
+              
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/70 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
+                    <span>📱 Table QR Ordering</span>
+                    {restaurant.hasTableQrOrdering ? (
+                      <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full">ENABLED</span>
+                    ) : (
+                      <span className="text-[9px] font-black bg-gray-200 text-gray-600 px-1.5 py-0.2 rounded-full">DISABLED</span>
+                    )}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Table-based QR codes, digital self-ordering and live customer tracking.
+                  </p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const nextVal = !restaurant.hasTableQrOrdering;
+                    await updateRestaurant(restaurant.id, { hasTableQrOrdering: nextVal, tableQrEnabled: nextVal });
+                    setLiveRestaurant((prev) => prev ? { ...prev, hasTableQrOrdering: nextVal } : null);
+                    Swal.fire({
+                      icon: nextVal ? 'success' : 'info',
+                      title: nextVal ? 'Table QR Ordering Enabled!' : 'Table QR Ordering Disabled',
+                      text: nextVal 
+                        ? `Restaurant "${restaurant.name}" now has access to Tables & QR Scanner Ordering in their sidebar.` 
+                        : `Table QR Ordering has been hidden and disabled for "${restaurant.name}".`,
+                      timer: 3000,
+                      showConfirmButton: false,
+                      customClass: { popup: 'rounded-2xl font-sans' }
+                    });
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                    restaurant.hasTableQrOrdering
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  {restaurant.hasTableQrOrdering ? 'Disable' : 'Enable'}
+                </button>
+              </div>
+
+              {/* Direct Table & QR Stand Management Button */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTablesModal(true)}
+                  className="w-full text-xs font-bold text-purple-700 bg-purple-50/70 hover:bg-purple-100 border border-purple-200 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+                >
+                  <QrCode className="w-4 h-4 text-purple-600" />
+                  <span>Manage Tables &amp; Print QR Stands</span>
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -298,6 +366,13 @@ export default function RestaurantDetailsPage() {
         <h3 className="text-lg font-bold text-gray-900">Recent Restaurant Orders</h3>
         <DataTable columns={recentOrdersColumns} data={orders} emptyTitle="No recent orders found" />
       </div>
+
+      {/* Super Admin Table Scanner & QR Stands Modal */}
+      <RestaurantTablesModal
+        restaurant={restaurant}
+        isOpen={showTablesModal}
+        onClose={() => setShowTablesModal(false)}
+      />
     </div>
   );
 }
