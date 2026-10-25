@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, Building, Percent, FileText } from 'lucide-react';
+import { Loader2, CheckCircle2, Building, Percent, FileText, Lock } from 'lucide-react';
 
 export default function RestaurantSettingsPage() {
   const { currentUser, currentRestaurant, updateCurrentRestaurant } = useApp();
@@ -101,14 +101,28 @@ export default function RestaurantSettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input
-              label="Restaurant Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="e.g. Ayush Rajpalani"
-              required
-            />
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                  Restaurant Name (Bill Branding)
+                  {currentUser?.role !== 'SUPER_ADMIN' && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+                      <Lock className="w-3 h-3" /> Managed by Super Admin
+                    </span>
+                  )}
+                </label>
+              </div>
+              <Input
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="e.g. Mr Kulhad"
+                disabled={currentUser?.role !== 'SUPER_ADMIN'}
+                className={currentUser?.role !== 'SUPER_ADMIN' ? 'bg-gray-100/80 font-bold text-gray-700 cursor-not-allowed border-gray-200' : ''}
+                hint={currentUser?.role !== 'SUPER_ADMIN' ? 'Only Super Admin can change the registered Restaurant Name on bills.' : undefined}
+                required
+              />
+            </div>
             <Input
               label="Owner Name"
               name="ownerName"
