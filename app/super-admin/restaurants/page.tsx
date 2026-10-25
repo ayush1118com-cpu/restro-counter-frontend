@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Eye, Edit, ShieldAlert, CheckCircle, Ban, Building2, ChefHat } from 'lucide-react';
+import { Plus, Search, Eye, Edit, ShieldAlert, CheckCircle, Ban, Building2, ChefHat, Trash2, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -13,15 +13,19 @@ import { useApp } from '@/lib/context/app-context';
 import { Restaurant, RestaurantStatus } from '@/types';
 import { formatDate, formatINR } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal';
+import Swal from 'sweetalert2';
 
 export default function RestaurantsPage() {
-  const { restaurants, updateRestaurantStatus } = useApp();
+  const { restaurants, updateRestaurantStatus, deleteRestaurant, updateRestaurantPassword } = useApp();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [passwordModalRestro, setPasswordModalRestro] = useState<Restaurant | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const uniqueCities = Array.from(new Set(restaurants.map((r) => r.city)));
 
@@ -114,6 +118,18 @@ export default function RestaurantsPage() {
             <Edit className="w-4 h-4 text-blue-600" />
           </Button>
 
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Update Admin Password"
+            onClick={() => {
+              setPasswordModalRestro(r);
+              setNewPassword('');
+            }}
+          >
+            <KeyRound className="w-4 h-4 text-amber-600" />
+          </Button>
+
           {r.status !== 'ACTIVE' && (
             <Button
               variant="ghost"
@@ -146,6 +162,35 @@ export default function RestaurantsPage() {
               Block
             </Button>
           )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Delete Restaurant"
+            className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            onClick={() => {
+              Swal.fire({
+                title: 'Delete Restaurant?',
+                html: `Are you sure you want to completely delete <b>${r.name}</b>?<br/><span class="text-xs text-red-500 font-semibold">This will permanently delete this outlet, its menu items, categories, and orders.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Delete Outlet',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                  popup: 'rounded-3xl font-sans',
+                  title: 'font-black text-gray-900',
+                },
+              }).then(async (result) => {
+                if (result.isConfirmed) {
+                  await deleteRestaurant(r.id);
+                }
+              });
+            }}
+          >
+            <Trash2 className="w-4 h-4 text-red-500" />
+          </Button>
         </div>
       ),
     },
@@ -258,6 +303,70 @@ export default function RestaurantsPage() {
                 }}
               >
                 Set Blocked
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Update Restaurant Admin Password Modal */}
+      {passwordModalRestro && (
+        <Modal
+          isOpen={!!passwordModalRestro}
+          onClose={() => {
+            setPasswordModalRestro(null);
+            setNewPassword('');
+          }}
+          title={`Update Admin Password - ${passwordModalRestro.name}`}
+          maxWidth="md"
+        >
+          <div className="space-y-4 py-2">
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/60 text-xs text-amber-900">
+              <p className="font-bold">Outlet: {passwordModalRestro.name}</p>
+              <p className="text-[11px] text-gray-600 mt-0.5">Admin Email: {passwordModalRestro.email}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-800 mb-1.5">
+                New Password (minimum 6 characters)
+              </label>
+              <input
+                type="text"
+                placeholder="Enter new password (e.g. Kulhad@123)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-medium"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="md"
+                className="flex-1"
+                onClick={() => {
+                  setPasswordModalRestro(null);
+                  setNewPassword('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1 font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                disabled={!newPassword || newPassword.length < 6 || isUpdatingPassword}
+                onClick={async () => {
+                  setIsUpdatingPassword(true);
+                  const success = await updateRestaurantPassword(passwordModalRestro.id, newPassword);
+                  setIsUpdatingPassword(false);
+                  if (success) {
+                    setPasswordModalRestro(null);
+                    setNewPassword('');
+                  }
+                }}
+              >
+                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
               </Button>
             </div>
           </div>

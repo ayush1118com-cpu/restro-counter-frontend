@@ -27,7 +27,7 @@ export const MOCK_CATEGORIES: Category[] = [
     "id": "cat_all",
     "name": "All",
     "description": "All available items",
-    "itemCount": 85,
+    "itemCount": 90,
     "isActive": true
   },
   {
@@ -1091,6 +1091,61 @@ export const MOCK_MENU_ITEMS: MenuItem[] = [
     "description": "Over-the-counter item",
     "price": 10,
     "image": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=500&q=80",
+    "isAvailable": true,
+    "requiresKitchen": false
+  },
+  {
+    "id": "item_86",
+    "name": "Puff (Normal)",
+    "categoryId": "cat_18",
+    "categoryName": "Snacks",
+    "description": "Crispy baked puff",
+    "price": 15,
+    "image": "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=500&q=80",
+    "isAvailable": true,
+    "requiresKitchen": false
+  },
+  {
+    "id": "item_87",
+    "name": "Puff (Masala)",
+    "categoryId": "cat_18",
+    "categoryName": "Snacks",
+    "description": "Crispy spiced puff",
+    "price": 20,
+    "image": "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=500&q=80",
+    "isAvailable": true,
+    "requiresKitchen": false
+  },
+  {
+    "id": "item_88",
+    "name": "Puff (Paneer / Cheese)",
+    "categoryId": "cat_18",
+    "categoryName": "Snacks",
+    "description": "Crispy paneer/cheese loaded puff",
+    "price": 25,
+    "image": "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=500&q=80",
+    "isAvailable": true,
+    "requiresKitchen": false
+  },
+  {
+    "id": "item_89",
+    "name": "Diet Coke (Can)",
+    "categoryId": "cat_17",
+    "categoryName": "Packaged Drinks",
+    "description": "Chilled Diet Coke",
+    "price": 50,
+    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&q=80",
+    "isAvailable": true,
+    "requiresKitchen": false
+  },
+  {
+    "id": "item_90",
+    "name": "Milk (Glass / Pouch)",
+    "categoryId": "cat_17",
+    "categoryName": "Packaged Drinks",
+    "description": "Fresh milk",
+    "price": 28,
+    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&q=80",
     "isAvailable": true,
     "requiresKitchen": false
   }

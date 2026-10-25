@@ -10,14 +10,27 @@ import { formatINR, formatDate } from '@/lib/utils';
 import { IndianRupee, Banknote, QrCode, CreditCard, Receipt } from 'lucide-react';
 
 export default function PaymentsPage() {
-  const { payments, orders } = useApp();
+  const { payments, orders, currentUser } = useApp();
 
   const effectivePayments = React.useMemo(() => {
-    if (payments && payments.length > 0) return payments;
-    return orders
+    const currentRestId = currentUser?.restaurantId;
+
+    // Filter payments strictly for the logged-in restaurant/admin
+    const myPayments = (payments || []).filter(
+      (p) => !currentRestId || !p.restaurantId || p.restaurantId === currentRestId
+    );
+
+    if (myPayments.length > 0) return myPayments;
+
+    const myOrders = (orders || []).filter(
+      (o) => !currentRestId || !o.restaurantId || o.restaurantId === currentRestId
+    );
+
+    return myOrders
       .filter((o) => o.status !== 'CANCELLED')
       .map((o) => ({
         id: `pay_${o.id}`,
+        restaurantId: o.restaurantId,
         orderId: o.id,
         orderNumber: String(o.orderNumber),
         amount: o.total,
@@ -25,7 +38,7 @@ export default function PaymentsPage() {
         status: 'SUCCESS' as const,
         createdAt: o.createdAt || new Date().toISOString(),
       }));
-  }, [payments, orders]);
+  }, [payments, orders, currentUser?.restaurantId]);
 
   const totalRevenue = effectivePayments.reduce((acc, p) => acc + p.amount, 0);
   const cashTotal = effectivePayments.filter((p) => p.method === 'CASH').reduce((acc, p) => acc + p.amount, 0);

@@ -26,6 +26,10 @@ export interface Restaurant {
   salesTotal: number;
   activeMenuCount: number;
   createdAt: string;
+  gstin?: string;
+  gstRate?: number;
+  receiptHeader?: string;
+  receiptFooter?: string;
 }
 
 export type LeadStatus = 'NEW' | 'CONTACTED' | 'DEMO_SCHEDULED' | 'CONVERTED' | 'CLOSED';
@@ -95,6 +99,7 @@ export interface Order {
   updatedAt: string;
   customerName?: string;
   customerPhone?: string;
+  vehicleNumber?: string;
   notes?: string;
   paidAmount?: number;
   dueAmount?: number;
@@ -102,6 +107,7 @@ export interface Order {
 
 export interface PaymentTransaction {
   id: string;
+  restaurantId?: string;
   orderId: string;
   orderNumber: string;
   amount: number;
@@ -112,6 +118,7 @@ export interface PaymentTransaction {
 
 export interface KhataTransaction {
   id: string;
+  restaurantId?: string;
   orderId?: string;
   orderNumber?: string;
   type: 'DUE_ADDED' | 'PAYMENT_RECEIVED';
@@ -123,6 +130,7 @@ export interface KhataTransaction {
 
 export interface KhataAccount {
   id: string;
+  restaurantId?: string;
   customerName: string;
   customerPhone?: string;
   totalDue: number;

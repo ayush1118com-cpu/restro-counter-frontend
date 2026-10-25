@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { PaymentMethod, Order } from '@/types';
 import { formatINR } from '@/lib/utils';
-import { Banknote, QrCode, CreditCard, CheckCircle2, Printer, PlusCircle, AlertCircle, BookOpen } from 'lucide-react';
+import { Banknote, QrCode, CreditCard, CheckCircle2, Printer, PlusCircle, AlertCircle, BookOpen, Car } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('UPI');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
   const [paidAmount, setPaidAmount] = useState<string>('');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,7 +66,8 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
       customerPhone.trim() || undefined,
       customerName.trim() || undefined,
       numPaid,
-      currentOrderDue
+      currentOrderDue,
+      vehicleNumber.trim() ? vehicleNumber.trim().toUpperCase() : undefined
     );
     setCreatedOrder(order);
     setIsProcessing(false);
@@ -91,6 +93,7 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
     setCreatedOrder(null);
     setCustomerName('');
     setCustomerPhone('');
+    setVehicleNumber('');
     setPaidAmount('');
     clearCart();
     onClose();
@@ -158,14 +161,14 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
           </div>
 
           {/* Customer Details Inputs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
             <div>
               <label className="block text-xs font-bold text-gray-800 mb-1">
                 Customer Name / Token <span className="text-rose-600 font-black">*</span>
               </label>
               <input
                 type="text"
-                placeholder="e.g. Rahul / Table 4 / Token 12"
+                placeholder="e.g. Rahul / Token 12"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold placeholder:text-gray-400"
@@ -182,6 +185,20 @@ export function PaymentModal({ isOpen, onClose, onPaymentSuccess, onPrintBill }:
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-amber-500 font-semibold placeholder:text-gray-400"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-800 mb-1 flex items-center gap-1">
+                <Car className="w-3.5 h-3.5 text-amber-600" />
+                <span>Vehicle No.</span>
+                <span className="text-gray-400 font-normal text-[10px]">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. RJ 14 AB 1234"
+                value={vehicleNumber}
+                onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+                className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl text-gray-900 uppercase focus:outline-none focus:border-amber-500 font-bold placeholder:text-gray-400 placeholder:normal-case"
               />
             </div>
           </div>

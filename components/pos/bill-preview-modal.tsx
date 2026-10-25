@@ -15,15 +15,15 @@ export interface BillPreviewModalProps {
 }
 
 export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalProps) {
-  const { currentUser, restaurants } = useApp();
+  const { currentUser, restaurants, currentRestaurant } = useApp();
 
   if (!order) return null;
 
   // ====== RESTAURANT DATA FOR BILL ======
-  // Priority: match by restaurantId > match by email > match by phone > first restaurant in list
   const STALE_NAMES = ['Spice Garden Restaurant', 'Spice Garden', 'Counter Restaurant Outlet', 'Restro Counter Outlet'];
 
   const activeRestaurant =
+    currentRestaurant ||
     restaurants.find((r) => r.id === currentUser?.restaurantId) ||
     restaurants.find((r) => r.email === currentUser?.email) ||
     restaurants.find((r) => r.phone === currentUser?.phone) ||
@@ -35,12 +35,14 @@ export function BillPreviewModal({ isOpen, onClose, order }: BillPreviewModalPro
     || (currentUser?.name ? `${currentUser.name.replace(/\s*\(Counter Admin\)/i, '').replace(/\s*\(Admin\)/i, '').trim()}'s Restaurant` : 'Restaurant Counter');
 
   // Address: always from restaurant record
-  const displayAddress = activeRestaurant
-    ? `${activeRestaurant.address}, ${activeRestaurant.city}`
+  const displayAddress = activeRestaurant?.address
+    ? `${activeRestaurant.address}${activeRestaurant.city ? `, ${activeRestaurant.city}` : ''}`
     : 'Counter Outlet';
 
   // Phone: always from restaurant record
   const displayPhone = activeRestaurant?.phone || currentUser?.phone || '';
+  const displayGstin = activeRestaurant?.gstin || '';
+  const activeGstRate = activeRestaurant?.gstRate !== undefined ? activeRestaurant.gstRate : 5;
 
   const handlePrint = () => {
     const printContent = document.getElementById('printable-receipt');
@@ -181,7 +183,10 @@ TOTAL:       ${formatINR(order.total)}
               {displayName}
             </h3>
             <p className="text-xs font-semibold text-gray-800">{displayAddress}</p>
-            <p className="text-xs font-semibold text-gray-800">Ph: {displayPhone} | GSTIN: 07AAAAA0000A1Z5</p>
+            <p className="text-xs font-semibold text-gray-800">
+              {displayPhone ? `Ph: ${displayPhone}` : ''}
+              {displayGstin ? `${displayPhone ? ' | ' : ''}GSTIN: ${displayGstin}` : ''}
+            </p>
           </div>
 
           {/* Order Details */}
@@ -192,6 +197,11 @@ TOTAL:       ${formatINR(order.total)}
               {order.customerName && (
                 <p className="text-xs font-bold text-gray-800 mt-0.5">
                   Cust: {order.customerName} {order.customerPhone ? `(${order.customerPhone})` : ''}
+                </p>
+              )}
+              {order.vehicleNumber && (
+                <p className="text-xs font-extrabold text-gray-900 mt-0.5">
+                  🚗 Vehicle: {order.vehicleNumber}
                 </p>
               )}
             </div>
@@ -234,7 +244,7 @@ TOTAL:       ${formatINR(order.total)}
               <span className="font-bold">{formatINR(order.subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Tax (5% GST)</span>
+              <span>Tax ({activeGstRate}% GST)</span>
               <span className="font-bold">{formatINR(order.tax)}</span>
             </div>
             {order.discount > 0 && (
@@ -263,7 +273,7 @@ TOTAL:       ${formatINR(order.total)}
 
           {/* Footer message */}
           <div className="text-center pt-3 border-t border-dashed border-gray-400 text-xs text-gray-800 font-sans space-y-1">
-            <p className="font-bold text-gray-900">Thank you for dining with us!</p>
+            <p className="font-bold text-gray-900">{activeRestaurant?.receiptFooter || 'Thank you for dining with us!'}</p>
             <p className="text-[11px] text-gray-600">Visit again soon for fresh counter meals.</p>
             <div className="pt-2 border-t border-dotted border-gray-300 mt-2 space-y-0.5">
               <p className="text-[11px] font-black text-gray-900 tracking-wider uppercase">

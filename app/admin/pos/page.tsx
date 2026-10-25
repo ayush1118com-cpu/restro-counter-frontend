@@ -31,6 +31,7 @@ export default function POSScreenPage() {
     categories,
     menuItems,
     cart,
+    currentRestaurant,
     addToCart,
     removeFromCart,
     updateCartQuantity,
@@ -41,6 +42,7 @@ export default function POSScreenPage() {
     cartTotal,
   } = useApp();
 
+  const activeGstRate = currentRestaurant?.gstRate !== undefined ? currentRestaurant.gstRate : 5;
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('cat_all');
   const [search, setSearch] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -418,7 +420,7 @@ export default function POSScreenPage() {
                 <span className="text-slate-900">{formatINR(cartSubtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tax (5% GST)</span>
+                <span>Tax ({activeGstRate}% GST)</span>
                 <span className="text-slate-900">{formatINR(cartTax)}</span>
               </div>
               <div className="flex justify-between text-emerald-600">

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/types';
 import { formatINR, formatDate, formatTime } from '@/lib/utils';
-import { Clock, Printer, User, Phone, CreditCard, UtensilsCrossed } from 'lucide-react';
+import { Clock, Printer, User, Phone, CreditCard, UtensilsCrossed, Car } from 'lucide-react';
 
 export interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -78,7 +78,7 @@ export function OrderDetailsModal({
         </div>
 
         {/* Customer Information */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+        <div className={`grid grid-cols-1 ${order.vehicleNumber ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 text-xs bg-gray-50 p-3.5 rounded-xl border border-gray-100`}>
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-gray-400 shrink-0" />
             <div>
@@ -97,6 +97,17 @@ export function OrderDetailsModal({
               </p>
             </div>
           </div>
+          {order.vehicleNumber && (
+            <div className="flex items-center gap-2">
+              <Car className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <p className="text-[11px] text-gray-400 font-medium">Vehicle Number</p>
+                <p className="font-extrabold text-amber-900 uppercase tracking-wide truncate">
+                  {order.vehicleNumber}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ITEM SECTION */}

@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Ban,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,14 +24,61 @@ import { useApp } from '@/lib/context/app-context';
 import { formatDate, formatINR } from '@/lib/utils';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Order } from '@/types';
+import Swal from 'sweetalert2';
+
+import { API_URL } from '@/lib/config';
 
 export default function RestaurantDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { restaurants, orders, updateRestaurantStatus } = useApp();
+  const { restaurants, orders, updateRestaurantStatus, deleteRestaurant } = useApp();
 
-  const restId = (params?.id as string) || 'rest_1';
-  const restaurant = restaurants.find((r) => r.id === restId) || restaurants[0];
+  const restId = (params?.id as string) || '';
+  const contextRest = restaurants.find((r) => r.id === restId);
+  const [liveRestaurant, setLiveRestaurant] = React.useState<Restaurant | null>(contextRest || null);
+  const [isLoading, setIsLoading] = React.useState(!contextRest);
+
+  React.useEffect(() => {
+    if (contextRest) {
+      setLiveRestaurant(contextRest);
+    }
+  }, [contextRest]);
+
+  React.useEffect(() => {
+    if (!restId) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/restaurants/${restId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success && resData.data?.restaurant) {
+            const r = resData.data.restaurant;
+            setLiveRestaurant({
+              id: r._id || r.id,
+              name: r.name,
+              ownerName: r.ownerName,
+              email: r.email,
+              phone: r.phone,
+              address: r.address,
+              city: r.city,
+              status: r.status,
+              ordersCount: r.metrics?.totalOrders || 0,
+              salesTotal: r.metrics?.totalRevenue || 0,
+              activeMenuCount: 0,
+              createdAt: r.createdAt,
+            });
+          }
+        })
+        .catch((err) => console.error('Failed to fetch restaurant details:', err))
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  }, [restId]);
+
+  const restaurant = liveRestaurant || contextRest || restaurants[0];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -124,6 +172,37 @@ export default function RestaurantDetailsPage() {
               <Ban className="w-4 h-4 mr-1" /> Block
             </Button>
           )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-red-600 hover:bg-red-50 hover:text-red-700 font-bold border border-red-200"
+            onClick={() => {
+              Swal.fire({
+                title: 'Delete Restaurant?',
+                html: `Are you sure you want to permanently delete <b>${restaurant.name}</b>?<br/><span class="text-xs text-red-500 font-semibold">This will delete all associated menus, orders, and user logins.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                  popup: 'rounded-3xl font-sans',
+                  title: 'font-black text-gray-900',
+                },
+              }).then(async (result) => {
+                if (result.isConfirmed) {
+                  const deleted = await deleteRestaurant(restaurant.id);
+                  if (deleted) {
+                    router.push('/super-admin/restaurants');
+                  }
+                }
+              });
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-1" /> Delete
+          </Button>
         </div>
       </div>
 

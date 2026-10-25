@@ -40,11 +40,15 @@ interface AppContextType {
   loginAs: (role: 'SUPER_ADMIN' | 'RESTAURANT_ADMIN' | 'KITCHEN_STAFF', customUser?: User) => void;
   logout: () => void;
 
-  // Restaurants (Super Admin)
+  // Restaurants
   restaurants: Restaurant[];
+  currentRestaurant: Restaurant | null;
+  updateCurrentRestaurant: (data: Partial<Restaurant>) => Promise<boolean>;
   addRestaurant: (data: Omit<Restaurant, 'id' | 'ordersCount' | 'salesTotal' | 'createdAt' | 'activeMenuCount'>) => Promise<Restaurant | null>;
   updateRestaurantStatus: (id: string, status: RestaurantStatus) => void;
   updateRestaurant: (id: string, data: Partial<Restaurant>) => void;
+  deleteRestaurant: (id: string) => Promise<boolean>;
+  updateRestaurantPassword: (id: string, password: string) => Promise<boolean>;
 
   // Leads (Public & Super Admin)
   leads: Lead[];
@@ -82,7 +86,8 @@ interface AppContextType {
     customerPhone?: string,
     customerName?: string,
     paidAmount?: number,
-    dueAmount?: number
+    dueAmount?: number,
+    vehicleNumber?: string
   ) => Promise<Order>;
   recordKhataPayment: (accountId: string, amount: number, method: PaymentMethod, notes?: string) => void;
   getCustomerKhata: (customerNameOrPhone: string) => KhataAccount | undefined;
@@ -101,7 +106,15 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // Cloud data
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('restro_restaurants');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
 
   // Auth
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -114,7 +127,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  const getInitialState = (key: string, defaultVal: any[]) => {
+  const getInitialState = <T,>(key: string, defaultVal: T): T => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem(key);
@@ -137,24 +150,109 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>(() => getInitialState('restro_orders', []));
   const [payments, setPayments] = useState<PaymentTransaction[]>(() => getInitialState('restro_payments', []));
   const [khataAccounts, setKhataAccounts] = useState<KhataAccount[]>(() => getInitialState('restro_khata', []));
+  const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(() => getInitialState('restro_profile', null));
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Helper to persist state to localStorage (caching for optimistic UI)
+  // Helper to persist state to localStorage (caching for optimistic UI scoped per restaurant)
+  const getRestroKey = (key: string, customRestId?: string) => {
+    const rId = customRestId || currentUser?.restaurantId;
+    if (rId && currentUser?.role !== 'SUPER_ADMIN') {
+      return `${key}_${rId}`;
+    }
+    return key;
+  };
+
   const saveStorage = (key: string, data: any) => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(key, JSON.stringify(data));
+        localStorage.setItem(getRestroKey(key), JSON.stringify(data));
       } catch (e) {}
     }
   };
 
+  // Clean legacy shared storage keys that cause cross-admin data leakage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('restro_orders');
+      localStorage.removeItem('restro_payments');
+      localStorage.removeItem('restro_khata');
+    }
+  }, []);
+
+  // When restaurantId changes, load strictly scoped data for that restaurant
+  useEffect(() => {
+    if (!currentUser?.restaurantId || currentUser.role === 'SUPER_ADMIN') return;
+
+    const restId = currentUser.restaurantId;
+    const scopedOrders = getInitialState(`restro_orders_${restId}`, []);
+    const scopedPayments = getInitialState(`restro_payments_${restId}`, []);
+    const scopedKhata = getInitialState(`restro_khata_${restId}`, []);
+    const scopedMenu = getInitialState(`restro_menu_items_${restId}`, []);
+    const scopedCategories = getInitialState(`restro_categories_${restId}`, MOCK_CATEGORIES);
+    const scopedProfile = getInitialState(`restro_profile_${restId}`, null);
+
+    setOrders(scopedOrders);
+    setPayments(scopedPayments);
+    setKhataAccounts(scopedKhata);
+    if (scopedMenu && scopedMenu.length > 0) setMenuItems(scopedMenu);
+    if (scopedCategories && scopedCategories.length > 0) setCategories(scopedCategories);
+    if (scopedProfile) setCurrentRestaurant(scopedProfile);
+
+    // Fetch live restaurant details and GST config from backend
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      fetch(`${API_URL}/restaurants/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-restaurant-id': restId,
+        },
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success && resData.data?.restaurant) {
+            const r = resData.data.restaurant;
+            const mapped: Restaurant = {
+              id: r._id || r.id,
+              name: r.name,
+              ownerName: r.ownerName,
+              email: r.email,
+              phone: r.phone,
+              address: r.address,
+              city: r.city,
+              status: r.status,
+              gstin: r.gstin || '',
+              gstRate: r.gstRate !== undefined ? Number(r.gstRate) : 5,
+              receiptHeader: r.receiptHeader || 'SERV DESK - FAST POS',
+              receiptFooter: r.receiptFooter || 'Thank you for dining with us! Visit again.',
+              ordersCount: 0,
+              salesTotal: 0,
+              activeMenuCount: 0,
+              createdAt: r.createdAt || new Date().toISOString(),
+            };
+            setCurrentRestaurant(mapped);
+            saveStorage('restro_profile', mapped);
+          }
+        })
+        .catch((err) => console.error('Failed to fetch restaurant profile:', err));
+    }
+  }, [currentUser?.restaurantId]);
+
   const logout = () => {
     setCurrentUser(null);
+    setCurrentRestaurant(null);
+    setOrders([]);
+    setPayments([]);
+    setKhataAccounts([]);
+    setCart([]);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('restro_orders');
+      localStorage.removeItem('restro_payments');
+      localStorage.removeItem('restro_khata');
+      localStorage.removeItem('restro_profile');
     }
     toast.info('Logged out successfully');
   };
@@ -198,8 +296,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const matchedRest =
       restaurants.find((r) => r.id === currentUser.restaurantId) ||
       restaurants.find((r) => r.email === currentUser.email) ||
-      restaurants.find((r) => r.phone === currentUser.phone) ||
-      restaurants[0]; // fallback to first restaurant
+      restaurants.find((r) => r.phone === currentUser.phone);
 
     if (matchedRest) {
       const needsUpdate =
@@ -215,7 +312,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           phone: matchedRest.phone,
         };
         setCurrentUser(updatedUser);
-        saveStorage('user', updatedUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
       }
     }
   }, [restaurants]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -259,13 +358,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setOrders(dbOrders);
           saveStorage('restro_orders', dbOrders);
 
-          // Automatically derive / sync payment transactions from orders
+          // Automatically derive / sync payment transactions from orders for current restaurant
           setPayments((prev) => {
             const payMap = new Map<string, PaymentTransaction>();
-            // Keep existing recorded payments
-            prev.forEach((p) => payMap.set(p.orderId || p.id, p));
+            // Keep only existing recorded payments that belong to this restaurant
+            prev
+              .filter((p) => !p.restaurantId || p.restaurantId === currentUser.restaurantId)
+              .forEach((p) => payMap.set(p.orderId || p.id, p));
 
-            // Derive for all non-cancelled orders
+            // Derive for all non-cancelled orders of this restaurant
             dbOrders.forEach((o) => {
               if (o.status !== 'CANCELLED' && (o.paymentStatus === 'PAID' || !o.paymentStatus)) {
                 const key = o.id;
@@ -273,6 +374,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 if (!existing) {
                   payMap.set(key, {
                     id: `pay_${o.id}`,
+                    restaurantId: currentUser.restaurantId,
                     orderId: o.id,
                     orderNumber: o.orderNumber,
                     amount: o.total,
@@ -300,6 +402,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
           const dbPayments: PaymentTransaction[] = resData.data.map((p: any) => ({
             id: p._id || p.id,
+            restaurantId: p.restaurantId || currentUser.restaurantId,
             orderId: (typeof p.orderId === 'object' && p.orderId?._id) ? p.orderId._id : (p.orderId || ''),
             orderNumber: (typeof p.orderId === 'object' && p.orderId?.orderNumber) ? String(p.orderId.orderNumber) : (p.orderNumber ? String(p.orderNumber) : '1001'),
             amount: p.amount,
@@ -310,7 +413,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           setPayments((prev) => {
             const payMap = new Map<string, PaymentTransaction>();
-            prev.forEach((p) => payMap.set(p.orderId || p.id, p));
+            // Keep only existing recorded payments that belong to this restaurant
+            prev
+              .filter((p) => !p.restaurantId || p.restaurantId === currentUser.restaurantId)
+              .forEach((p) => payMap.set(p.orderId || p.id, p));
             dbPayments.forEach((p) => payMap.set(p.orderId || p.id, p));
             const merged = Array.from(payMap.values()).sort(
               (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -505,9 +611,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // 1. Local Cross-tab sync
-      const channel = new BroadcastChannel('restro_orders_sync');
+      const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
+      const channel = new BroadcastChannel(channelName);
       channel.onmessage = (event) => {
         const { type, order, orderId, status, payment } = event.data || {};
+        if (order?.restaurantId && currentUser?.restaurantId && String(order.restaurantId) !== String(currentUser.restaurantId)) return;
         if (type === 'NEW_ORDER' && order) {
           setOrders((prev) => {
             if (prev.some((o) => (o.id || o.orderNumber) === (order.id || order.orderNumber))) return prev;
@@ -517,6 +625,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Sync payment transaction in real-time
           const payItem: PaymentTransaction = payment || {
             id: `pay_${order.id}`,
+            restaurantId: order.restaurantId || currentUser?.restaurantId,
             orderId: order.id,
             orderNumber: order.orderNumber,
             amount: order.total,
@@ -551,6 +660,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           socket.on('new-order', (payload: any) => {
             if (payload?.order) {
               const newOrder = payload.order;
+              if (newOrder.restaurantId && currentUser?.restaurantId && String(newOrder.restaurantId) !== String(currentUser.restaurantId)) return;
               setOrders((prev) => {
                 if (prev.some((o) => (o.id || o.orderNumber) === (newOrder._id || newOrder.id || newOrder.orderNumber))) return prev;
                 const normalized = {
@@ -570,6 +680,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               // Add to real-time live payments
               const payItem: PaymentTransaction = {
                 id: `pay_${newOrder._id || newOrder.id}`,
+                restaurantId: newOrder.restaurantId || currentUser?.restaurantId,
                 orderId: newOrder._id || newOrder.id,
                 orderNumber: newOrder.orderNumber?.toString() || '1001',
                 amount: newOrder.grandTotal || newOrder.total,
@@ -590,8 +701,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           socket.on('payment-updated', (payload: any) => {
             if (payload?.payment) {
               const p = payload.payment;
+              if (p.restaurantId && currentUser?.restaurantId && String(p.restaurantId) !== String(currentUser.restaurantId)) return;
               const payItem: PaymentTransaction = {
                 id: p._id || p.id,
+                restaurantId: p.restaurantId || currentUser?.restaurantId,
                 orderId: (typeof p.orderId === 'object' && p.orderId?._id) ? p.orderId._id : (p.orderId || ''),
                 orderNumber: (typeof p.orderId === 'object' && p.orderId?.orderNumber) ? String(p.orderId.orderNumber) : (p.orderNumber ? String(p.orderNumber) : '1001'),
                 amount: p.amount,
@@ -773,6 +886,129 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     toast.success('Restaurant details updated');
+  };
+
+  const deleteRestaurant = async (id: string): Promise<boolean> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/restaurants/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const resData = await res.json();
+        if (!resData.success) {
+          toast.error(resData.message || 'Failed to delete restaurant');
+          return false;
+        }
+      } catch (err) {
+        console.error('Delete restaurant error:', err);
+        toast.error('Failed to delete restaurant from server');
+        return false;
+      }
+    }
+
+    setRestaurants((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      saveStorage('restro_restaurants', updated);
+      return updated;
+    });
+
+    toast.success('Restaurant outlet deleted successfully');
+    return true;
+  };
+
+  const updateRestaurantPassword = async (id: string, password: string): Promise<boolean> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/restaurants/${id}/password`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ password }),
+        });
+        const resData = await res.json();
+        if (!resData.success) {
+          toast.error(resData.message || 'Failed to update restaurant password');
+          return false;
+        }
+        toast.success('Restaurant login password updated successfully');
+        return true;
+      } catch (err) {
+        console.error('Update restaurant password error:', err);
+        toast.error('Failed to update password on server');
+        return false;
+      }
+    }
+    toast.success('Restaurant password updated locally');
+    return true;
+  };
+
+  const updateCurrentRestaurant = async (data: Partial<Restaurant>): Promise<boolean> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) return false;
+
+    try {
+      const res = await fetch(`${API_URL}/restaurants/me`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      });
+      const resData = await res.json();
+      if (!resData.success) {
+        toast.error(resData.message || 'Failed to update restaurant settings');
+        return false;
+      }
+
+      const r = resData.data;
+      const updated: Restaurant = {
+        ...(currentRestaurant || ({} as Restaurant)),
+        ...data,
+        ...(r
+          ? {
+              id: r._id || r.id || currentRestaurant?.id,
+              name: r.name || data.name || currentRestaurant?.name,
+              ownerName: r.ownerName || data.ownerName || currentRestaurant?.ownerName,
+              email: r.email || data.email || currentRestaurant?.email,
+              phone: r.phone || data.phone || currentRestaurant?.phone,
+              address: r.address || data.address || currentRestaurant?.address,
+              city: r.city || data.city || currentRestaurant?.city,
+              gstin: r.gstin !== undefined ? r.gstin : data.gstin,
+              gstRate: r.gstRate !== undefined ? Number(r.gstRate) : data.gstRate,
+              receiptHeader: r.receiptHeader !== undefined ? r.receiptHeader : data.receiptHeader,
+              receiptFooter: r.receiptFooter !== undefined ? r.receiptFooter : data.receiptFooter,
+            }
+          : {}),
+      };
+
+      setCurrentRestaurant(updated);
+      saveStorage('restro_profile', updated);
+
+      if (data.name && currentUser) {
+        const updatedUser: User = {
+          ...currentUser,
+          restaurantName: data.name,
+          ...(data.ownerName ? { name: `${data.ownerName} (Counter Admin)` } : {}),
+          ...(data.phone ? { phone: data.phone } : {}),
+        };
+        setCurrentUser(updatedUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+      }
+
+      toast.success('Restaurant profile and GST billing settings saved successfully!');
+      return true;
+    } catch (err) {
+      console.error('Update restaurant settings error:', err);
+      toast.error('Network error saving settings');
+      return false;
+    }
   };
 
   // Leads actions
@@ -1102,7 +1338,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const cartSubtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const cartTax = Math.round(cartSubtotal * 0.05); // 5% GST tax
+  const activeGstRate = currentRestaurant?.gstRate !== undefined ? currentRestaurant.gstRate : 5;
+  const cartTax = Math.round(cartSubtotal * (activeGstRate / 100));
   const cartTotal = cartSubtotal + cartTax;
 
   // Helper to find customer khata account
@@ -1154,6 +1391,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Also record in payment ledger
     const newPayment: PaymentTransaction = {
       id: `pay_khata_${Date.now()}`,
+      restaurantId: currentUser?.restaurantId,
       orderId: `khata_${accountId}`,
       orderNumber: `KHATA-${accountId.slice(-4)}`,
       amount,
@@ -1177,7 +1415,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     customerPhone?: string,
     customerName?: string,
     paidAmount?: number,
-    dueAmount?: number
+    dueAmount?: number,
+    vehicleNumber?: string
   ): Promise<Order> => {
     const orderNum = (1025 + orders.length + 1).toString();
     const hasKitchenItems = cart.some((ci) => ci.requiresKitchen !== false);
@@ -1211,6 +1450,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
       customerName,
       customerPhone,
+      vehicleNumber,
     };
 
     // Auto-update Khata if there is dueAmount or customer exists
@@ -1227,6 +1467,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const newTx: KhataTransaction = {
           id: `ktx_${Date.now()}`,
+          restaurantId: currentUser?.restaurantId,
           orderId: newOrder.id,
           orderNumber: newOrder.orderNumber,
           type: actualDue > 0 ? 'DUE_ADDED' : 'PAYMENT_RECEIVED',
@@ -1257,6 +1498,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else if (actualDue > 0 || actualPaid > 0) {
           const newAccount: KhataAccount = {
             id: `khata_${Date.now()}`,
+            restaurantId: currentUser?.restaurantId,
             customerName: customerName || `Customer (${customerPhone})`,
             customerPhone,
             totalDue: actualDue,
@@ -1297,7 +1539,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               tax: newOrder.tax,
               confirmPayment: isFullPaid,
               customerName: newOrder.customerName,
-              customerPhone: newOrder.customerPhone
+              customerPhone: newOrder.customerPhone,
+              vehicleNumber: newOrder.vehicleNumber
             })
           });
           const resData = await res.json();
@@ -1321,6 +1564,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const newPayment: PaymentTransaction = {
       id: `pay_${Date.now()}`,
+      restaurantId: newOrder.restaurantId || currentUser?.restaurantId,
       orderId: newOrder.id,
       orderNumber: newOrder.orderNumber,
       amount: actualPaid,
@@ -1348,7 +1592,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Broadcast to other open browser tabs (e.g. Kitchen Display screen)
     if (typeof window !== 'undefined') {
       try {
-        const channel = new BroadcastChannel('restro_orders_sync');
+        const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
+        const channel = new BroadcastChannel(channelName);
         channel.postMessage({ type: 'NEW_ORDER', order: newOrder, payment: newPayment });
         channel.close();
       } catch (e) {}
@@ -1369,7 +1614,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Broadcast status change to other tabs
     if (typeof window !== 'undefined') {
       try {
-        const channel = new BroadcastChannel('restro_orders_sync');
+        const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
+        const channel = new BroadcastChannel(channelName);
         channel.postMessage({ type: 'UPDATE_STATUS', orderId, status });
         channel.close();
       } catch (e) {}
@@ -1473,7 +1719,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           if (typeof window !== 'undefined') {
             try {
-              const channel = new BroadcastChannel('restro_orders_sync');
+              const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
+              const channel = new BroadcastChannel(channelName);
               channel.postMessage({ type: 'ORDER_UPDATED', order: updatedOrder });
               channel.close();
             } catch (e) {}
@@ -1510,7 +1757,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const subtotal = updatedItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
-    const tax = Math.round(subtotal * 0.05);
+    const tax = Math.round(subtotal * (activeGstRate / 100));
     const total = subtotal + tax - (targetOrder.discount || 0);
     const newStatus = hasKitchen && (targetOrder.status === 'COMPLETED' || targetOrder.status === 'READY') ? 'PREPARING' : targetOrder.status;
 
@@ -1533,7 +1780,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (typeof window !== 'undefined') {
       try {
-        const channel = new BroadcastChannel('restro_orders_sync');
+        const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
+        const channel = new BroadcastChannel(channelName);
         channel.postMessage({ type: 'ORDER_UPDATED', order: locallyUpdatedOrder });
         channel.close();
       } catch (e) {}
@@ -1551,9 +1799,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loginAs,
         logout,
         restaurants,
+        currentRestaurant,
+        updateCurrentRestaurant,
         addRestaurant,
         updateRestaurantStatus,
         updateRestaurant,
+        deleteRestaurant,
+        updateRestaurantPassword,
         leads,
         addLead,
         updateLeadStatus,

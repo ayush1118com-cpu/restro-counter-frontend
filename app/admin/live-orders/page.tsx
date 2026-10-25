@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useApp } from '@/lib/context/app-context';
 import { Order, OrderStatus } from '@/types';
 import { formatINR, formatDate, formatTimeAgo, formatTime } from '@/lib/utils';
-import { Clock, CheckCircle2, Flame, ChefHat, XCircle, RefreshCw, User, Phone, Plus } from 'lucide-react';
+import { Clock, CheckCircle2, Flame, ChefHat, XCircle, RefreshCw, User, Phone, Plus, Car } from 'lucide-react';
 import { BillPreviewModal } from '@/components/pos/bill-preview-modal';
 import { AddItemsModal } from '@/components/pos/add-items-modal';
 
@@ -89,12 +89,20 @@ export default function LiveOrdersPage() {
                 <User className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span className="truncate">{order.customerName || 'Walk-in Customer'}</span>
               </div>
-              {order.customerPhone && (
-                <div className="flex items-center gap-1 text-[11px] text-gray-600 font-semibold shrink-0">
-                  <Phone className="w-3 h-3 text-gray-400" />
-                  <span>{order.customerPhone}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {order.vehicleNumber && (
+                  <span className="flex items-center gap-1 font-extrabold text-[10px] bg-amber-200/80 text-amber-950 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    <Car className="w-3 h-3 text-amber-700" />
+                    <span>{order.vehicleNumber}</span>
+                  </span>
+                )}
+                {order.customerPhone && (
+                  <div className="flex items-center gap-1 text-[11px] text-gray-600 font-semibold shrink-0">
+                    <Phone className="w-3 h-3 text-gray-400" />
+                    <span>{order.customerPhone}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Items List */}

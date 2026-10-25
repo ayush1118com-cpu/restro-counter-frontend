@@ -55,6 +55,11 @@ export default function OrderHistoryPage() {
           {o.customerPhone && (
             <span className="text-[11px] text-gray-500 font-medium truncate">{o.customerPhone}</span>
           )}
+          {o.vehicleNumber && (
+            <span className="text-[10px] font-extrabold text-amber-900 bg-amber-50 border border-amber-200/80 px-1 py-0.5 rounded mt-0.5 w-fit uppercase tracking-wider">
+              🚗 {o.vehicleNumber}
+            </span>
+          )}
         </div>
       ),
     },
