@@ -208,21 +208,25 @@ export default function POSScreenPage() {
                     }`}
                   >
                     {/* Aspect 4/3 Image */}
-                    <div className="relative w-full aspect-4/3 bg-slate-100 overflow-hidden">
+                    <div className="relative w-full aspect-4/3 bg-gradient-to-br from-amber-50 to-orange-100/70 overflow-hidden flex items-center justify-center">
                       {item.image ? (
                         <img
                           src={typeof item.image === 'string' ? item.image : (item.image as any)?.secure_url}
                           alt={item.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
+                            // If remote image fails, show clean gradient placeholder
                             (e.currentTarget as HTMLElement).style.display = 'none';
+                            const fallback = e.currentTarget.parentElement?.querySelector('.img-fallback') as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
                           }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                          <UtensilsCrossed className="w-8 h-8" />
-                        </div>
-                      )}
+                      ) : null}
+                      
+                      <div className={`img-fallback w-full h-full ${item.image ? 'hidden' : 'flex'} flex-col items-center justify-center text-amber-600/70 bg-gradient-to-br from-amber-100/60 to-orange-100 p-2 text-center`}>
+                        <UtensilsCrossed className="w-8 h-8 text-amber-500 mb-1" />
+                        <span className="text-[10px] font-bold text-amber-900 line-clamp-1 px-1">{item.name}</span>
+                      </div>
 
                       {/* Instant Counter Tag or Out of Stock Tag */}
                       {item.requiresKitchen === false && item.isAvailable && (

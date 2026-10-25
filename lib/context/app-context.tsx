@@ -146,7 +146,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     return initial;
   });
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getInitialState('restro_menu_items', []));
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
+    const saved = getInitialState('restro_menu_items', []);
+    return (saved && saved.length > 0) ? saved : MOCK_MENU_ITEMS;
+  });
   const [orders, setOrders] = useState<Order[]>(() => getInitialState('restro_orders', []));
   const [payments, setPayments] = useState<PaymentTransaction[]>(() => getInitialState('restro_payments', []));
   const [khataAccounts, setKhataAccounts] = useState<KhataAccount[]>(() => getInitialState('restro_khata', []));
@@ -196,7 +199,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(scopedOrders);
     setPayments(scopedPayments);
     setKhataAccounts(scopedKhata);
-    if (scopedMenu && scopedMenu.length > 0) setMenuItems(scopedMenu);
+    if (scopedMenu && scopedMenu.length > 0) {
+      setMenuItems(scopedMenu);
+    } else {
+      setMenuItems(MOCK_MENU_ITEMS);
+    }
     if (scopedCategories && scopedCategories.length > 0) setCategories(scopedCategories);
     if (scopedProfile) setCurrentRestaurant(scopedProfile);
 
@@ -472,8 +479,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       authFetch(`${API_URL}/menu`)
         .then(resData => {
           if (resData.success && Array.isArray(resData.data)) {
-            const dbMenuItems = resData.data.map((m: any) => ({
-              id: m._id,
+            const itemsToUse = resData.data.length > 0 ? resData.data : MOCK_MENU_ITEMS;
+            const dbMenuItems = itemsToUse.map((m: any) => ({
+              id: m._id || m.id,
               categoryId: m.categoryId?._id || m.categoryId || 'cat_general',
               categoryName: m.categoryId?.name || m.categoryName || 'General',
               name: m.name,

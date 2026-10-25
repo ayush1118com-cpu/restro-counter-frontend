@@ -139,7 +139,7 @@ export const MOCK_CATEGORIES: Category[] = [
     "id": "cat_16",
     "name": "Cigarettes",
     "description": "Cigarettes items",
-    "itemCount": 9,
+    "itemCount": 3,
     "isActive": true
   },
   {
@@ -164,88 +164,88 @@ export const MOCK_MENU_ITEMS: MenuItem[] = [
     "name": "Adrak Chai (Glass)",
     "categoryId": "cat_1",
     "categoryName": "Chai",
-    "description": "Delicious Adrak Chai (Glass)",
+    "description": "Freshly brewed counter chai",
     "price": 25,
     "image": "https://images.unsplash.com/photo-1576092762791-dd9e2220abd4?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_2",
     "name": "Adrak Chai (Kulhad)",
     "categoryId": "cat_1",
     "categoryName": "Chai",
-    "description": "Delicious Adrak Chai (Kulhad)",
+    "description": "Freshly brewed counter chai in kulhad",
     "price": 35,
     "image": "https://images.unsplash.com/photo-1576092762791-dd9e2220abd4?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_3",
     "name": "Adrak Elaichi Mix (Glass)",
     "categoryId": "cat_1",
     "categoryName": "Chai",
-    "description": "Delicious Adrak Elaichi Mix (Glass)",
+    "description": "Freshly brewed counter chai",
     "price": 35,
     "image": "https://images.unsplash.com/photo-1576092762791-dd9e2220abd4?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_4",
     "name": "Adrak Elaichi Mix (Kulhad)",
     "categoryId": "cat_1",
     "categoryName": "Chai",
-    "description": "Delicious Adrak Elaichi Mix (Kulhad)",
+    "description": "Freshly brewed counter chai in kulhad",
     "price": 45,
     "image": "https://images.unsplash.com/photo-1576092762791-dd9e2220abd4?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_5",
     "name": "Elaichi Chai (Glass)",
     "categoryId": "cat_1",
     "categoryName": "Chai",
-    "description": "Delicious Elaichi Chai (Glass)",
+    "description": "Freshly brewed counter chai",
     "price": 40,
     "image": "https://images.unsplash.com/photo-1576092762791-dd9e2220abd4?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_6",
     "name": "Elaichi Chai (Kulhad)",
     "categoryId": "cat_1",
     "categoryName": "Chai",
-    "description": "Delicious Elaichi Chai (Kulhad)",
+    "description": "Freshly brewed counter chai in kulhad",
     "price": 50,
     "image": "https://images.unsplash.com/photo-1576092762791-dd9e2220abd4?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_7",
     "name": "Masala Lemon Tea",
     "categoryId": "cat_2",
     "categoryName": "Healthy Tea",
-    "description": "Delicious Masala Lemon Tea",
+    "description": "Counter tea",
     "price": 40,
     "image": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_8",
     "name": "Honey Ginger Lemon Tea",
     "categoryId": "cat_2",
     "categoryName": "Healthy Tea",
-    "description": "Delicious Honey Ginger Lemon Tea",
+    "description": "Counter tea",
     "price": 60,
     "image": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=500&q=80",
     "isAvailable": true,
-    "requiresKitchen": true
+    "requiresKitchen": false
   },
   {
     "id": "item_9",
@@ -865,99 +865,33 @@ export const MOCK_MENU_ITEMS: MenuItem[] = [
   },
   {
     "id": "item_65",
-    "name": "Classic Milds (Single)",
+    "name": "Cigarette (Small)",
     "categoryId": "cat_16",
     "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 18,
+    "description": "Counter cigarette",
+    "price": 15,
     "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
     "isAvailable": true,
     "requiresKitchen": false
   },
   {
     "id": "item_66",
-    "name": "Classic Regular (Single)",
+    "name": "Cigarette (Regular / Advance)",
     "categoryId": "cat_16",
     "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 18,
+    "description": "Counter cigarette",
+    "price": 20,
     "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
     "isAvailable": true,
     "requiresKitchen": false
   },
   {
     "id": "item_67",
-    "name": "Gold Flake Kings (Single)",
+    "name": "Cigarette (Classic / Premium)",
     "categoryId": "cat_16",
     "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 18,
-    "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
-    "isAvailable": true,
-    "requiresKitchen": false
-  },
-  {
-    "id": "item_68",
-    "name": "Gold Flake Small (Single)",
-    "categoryId": "cat_16",
-    "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 10,
-    "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
-    "isAvailable": true,
-    "requiresKitchen": false
-  },
-  {
-    "id": "item_69",
-    "name": "Marlboro Advance (Single)",
-    "categoryId": "cat_16",
-    "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 20,
-    "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
-    "isAvailable": true,
-    "requiresKitchen": false
-  },
-  {
-    "id": "item_70",
-    "name": "Marlboro Red (Single)",
-    "categoryId": "cat_16",
-    "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 20,
-    "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
-    "isAvailable": true,
-    "requiresKitchen": false
-  },
-  {
-    "id": "item_71",
-    "name": "Marlboro Clove (Single)",
-    "categoryId": "cat_16",
-    "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 20,
-    "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
-    "isAvailable": true,
-    "requiresKitchen": false
-  },
-  {
-    "id": "item_72",
-    "name": "B&H (Single)",
-    "categoryId": "cat_16",
-    "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 20,
-    "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
-    "isAvailable": true,
-    "requiresKitchen": false
-  },
-  {
-    "id": "item_73",
-    "name": "Flake Excel (Single)",
-    "categoryId": "cat_16",
-    "categoryName": "Cigarettes",
-    "description": "Over-the-counter item",
-    "price": 15,
+    "description": "Counter cigarette",
+    "price": 25,
     "image": "https://images.unsplash.com/photo-1528254413349-f8c5b61e0f0c?w=500&q=80",
     "isAvailable": true,
     "requiresKitchen": false

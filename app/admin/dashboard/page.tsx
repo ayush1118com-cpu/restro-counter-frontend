@@ -69,13 +69,23 @@ export default function RestaurantDashboardPage() {
     { name: 'Card', value: cardTotal || 2800, color: '#3b82f6' },
   ];
 
+  const currentHour = new Date().getHours();
+  const timeGreeting =
+    currentHour >= 4 && currentHour < 12
+      ? 'Good Morning'
+      : currentHour >= 12 && currentHour < 17
+      ? 'Good Afternoon'
+      : currentHour >= 17 && currentHour < 22
+      ? 'Good Evening'
+      : 'Good Night';
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="bg-white border border-[#E7EAF0] p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-            Good Morning, {currentUser?.name || 'Rahul'} 👋
+            {timeGreeting}, {currentUser?.name || 'Rahul'} 👋
           </h2>
           <p className="text-xs text-[#667085] mt-1">
             Here is your restaurant performance and live kitchen workflow for today.
