@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '@/lib/context/app-context';
 import { formatDate, formatINR } from '@/lib/utils';
 import { DataTable, Column } from '@/components/ui/data-table';
-import { Order } from '@/types';
+import { Order, Restaurant } from '@/types';
 import Swal from 'sweetalert2';
 
 import { API_URL } from '@/lib/config';
