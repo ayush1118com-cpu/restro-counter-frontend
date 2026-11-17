@@ -755,8 +755,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               };
 
               setOrders((prev) => {
-                if (prev.some((o) => (o.id || o.orderNumber) === (normalized.id || normalized.orderNumber))) return prev;
-                return [normalized, ...prev];
+                const existingIndex = prev.findIndex(
+                  (o) =>
+                    (o.id && (String(o.id) === String(normalized.id) || String(o.id) === String(newOrder._id))) ||
+                    (o.orderNumber && String(o.orderNumber) === String(normalized.orderNumber))
+                );
+
+                if (existingIndex > -1) {
+                  // Merge / update existing order with new items and recalculate
+                  const updated = [...prev];
+                  updated[existingIndex] = {
+                    ...updated[existingIndex],
+                    ...normalized,
+                    items: normalized.items,
+                    subtotal: normalized.subtotal,
+                    tax: normalized.tax,
+                    total: normalized.total,
+                    dueAmount: normalized.dueAmount,
+                    notes: normalized.notes,
+                    status: normalized.status,
+                    customerName: normalized.customerName || updated[existingIndex].customerName,
+                    customerPhone: normalized.customerPhone || updated[existingIndex].customerPhone,
+                    updatedAt: normalized.updatedAt,
+                  };
+                  saveStorage('restro_orders', updated);
+                  return updated;
+                }
+
+                const updated = [normalized, ...prev];
+                saveStorage('restro_orders', updated);
+                return updated;
               });
 
               // If Super Admin, update aggregate restaurant metrics live
@@ -796,7 +824,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               }
 
               playOrderNotificationSound();
-              if (currentUser.role === 'SUPER_ADMIN') {
+              if (newOrder.isAppended) {
+                toast.info(`Extra items added to Table ${normalized.tableNumber || ''} (Order #${normalized.orderNumber})!`, {
+                  description: `${newOrder.newItems?.map((it: any) => `${it.name} × ${it.quantity}`).join(', ') || 'Consolidated in same bill'}`,
+                  duration: 6000,
+                });
+              } else if (currentUser.role === 'SUPER_ADMIN') {
                 toast.success(`⚡ Live Order #${normalized.orderNumber} received${restName ? ` at ${restName}` : ''}! (₹${normalized.total})`);
               } else {
                 toast.success(`NEW ${normalized.orderType === 'TABLE_QR' ? `TABLE ORDER (${normalized.tableNumber || 'QR'})` : 'COUNTER ORDER'} #${normalized.orderNumber}!`);
