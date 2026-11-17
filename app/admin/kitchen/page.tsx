@@ -45,17 +45,63 @@ export default function KitchenDisplayScreenPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Sync with AppContext orders initially
+  // Fetch latest orders directly from API on mount
   useEffect(() => {
-    setOrders(contextOrders);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) return;
+
+    fetch(`${API_URL}/orders?limit=150&sortBy=createdAt&sortOrder=desc`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((resData) => {
+        if (resData.success && Array.isArray(resData.data)) {
+          setOrders(
+            resData.data.map((o: any) => ({
+              id: o._id || o.id,
+              orderNumber: (o.orderNumber || '').toString(),
+              status: o.orderStatus || o.status,
+              orderType: o.orderType || 'COUNTER',
+              tableNumber: o.tableNumber || '',
+              items: (o.items || []).map((it: any) => ({
+                ...it,
+                requiresKitchen: it.requiresKitchen !== false,
+              })),
+              customerName: o.customerName,
+              customerPhone: o.customerPhone,
+              createdAt: o.createdAt,
+              preparingStartedAt: o.preparingStartedAt,
+            }))
+          );
+        }
+      })
+      .catch((e) => console.error('Kitchen initial fetch error:', e));
+  }, []);
+
+  // Sync with AppContext orders whenever context updates
+  useEffect(() => {
+    if (contextOrders && contextOrders.length > 0) {
+      setOrders((prev) => {
+        const orderMap = new Map();
+        [...contextOrders, ...prev].forEach((o) => {
+          const key = o.id || o._id || o.orderNumber;
+          if (!orderMap.has(key)) orderMap.set(key, o);
+        });
+        return Array.from(orderMap.values());
+      });
+    }
   }, [contextOrders]);
 
   // Listen for multi-tab BroadcastChannel order events
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const channel = new BroadcastChannel('restro_orders_sync');
-      channel.onmessage = (event) => {
+      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      const userRestId = storedUser ? JSON.parse(storedUser)?.restaurantId : null;
+      const channel1 = new BroadcastChannel('restro_orders_sync');
+      const channel2 = userRestId ? new BroadcastChannel(`restro_orders_sync_${userRestId}`) : null;
+
+      const handleChannelMessage = (event: MessageEvent) => {
         const { type, order, orderId, status } = event.data || {};
 
         if (type === 'NEW_ORDER' && order) {
@@ -121,7 +167,13 @@ export default function KitchenDisplayScreenPage() {
         }
       };
 
-      return () => channel.close();
+      channel1.onmessage = handleChannelMessage;
+      if (channel2) channel2.onmessage = handleChannelMessage;
+
+      return () => {
+        channel1.close();
+        if (channel2) channel2.close();
+      };
     } catch (e) {}
   }, [isMuted]);
 
@@ -195,11 +247,13 @@ export default function KitchenDisplayScreenPage() {
         if (exists) return prev;
         const normalized = {
           id: orderId,
-          orderNumber: newOrder.orderNumber,
+          orderNumber: (newOrder.orderNumber || '').toString(),
           status: newOrder.orderStatus || newOrder.status || 'NEW',
           items: kitchenItems,
           customerName: newOrder.customerName,
           customerPhone: newOrder.customerPhone,
+          tableNumber: newOrder.tableNumber || '',
+          orderType: newOrder.orderType || 'COUNTER',
           createdAt: newOrder.createdAt || new Date().toISOString(),
           preparingStartedAt: newOrder.preparingStartedAt || null,
         };
@@ -216,18 +270,36 @@ export default function KitchenDisplayScreenPage() {
         const targetId = updatedOrder._id || updatedOrder.id;
         const nextStatus = updatedOrder.orderStatus || updatedOrder.status;
 
-        setOrders((prev) =>
-          prev.map((o) => {
-            if ((o.id || o._id) === targetId) {
-              return {
-                ...o,
-                status: nextStatus,
-                preparingStartedAt: nextStatus === 'PREPARING' ? o.preparingStartedAt || new Date().toISOString() : o.preparingStartedAt,
-              };
-            }
-            return o;
-          })
-        );
+        setOrders((prev) => {
+          const exists = prev.some((o) => (o.id || o._id || o.orderNumber) === targetId);
+          if (exists) {
+            return prev.map((o) => {
+              if ((o.id || o._id || o.orderNumber) === targetId) {
+                return {
+                  ...o,
+                  status: nextStatus,
+                  preparingStartedAt: nextStatus === 'PREPARING' ? o.preparingStartedAt || new Date().toISOString() : o.preparingStartedAt,
+                };
+              }
+              return o;
+            });
+          }
+          return [
+            {
+              id: targetId,
+              orderNumber: (updatedOrder.orderNumber || '').toString(),
+              status: nextStatus,
+              items: (updatedOrder.items || []).filter((it: any) => it.requiresKitchen !== false),
+              customerName: updatedOrder.customerName,
+              customerPhone: updatedOrder.customerPhone,
+              tableNumber: updatedOrder.tableNumber || '',
+              orderType: updatedOrder.orderType || 'COUNTER',
+              createdAt: updatedOrder.createdAt || new Date().toISOString(),
+              preparingStartedAt: nextStatus === 'PREPARING' ? new Date().toISOString() : null,
+            },
+            ...prev,
+          ];
+        });
       });
     });
 
@@ -292,9 +364,6 @@ export default function KitchenDisplayScreenPage() {
     }))
     .filter((o) => {
       if (o.items.length === 0) return false;
-      if (o.orderType === 'TABLE_QR') {
-        return o.status === 'ACCEPTED';
-      }
       return o.status === 'NEW' || o.status === 'ACCEPTED';
     });
 
@@ -495,7 +564,7 @@ export default function KitchenDisplayScreenPage() {
               </div>
 
               {/* Scrollable Order List */}
-              <div className="p-4 space-y-4 overflow-y-auto no-scrollbar flex-1">
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 pr-1.5 scrollbar-thin scrollbar-thumb-slate-700">
                 {newOrders.length === 0 ? (
                   <div className="py-16 text-center text-slate-500 space-y-2">
                     <Inbox className="w-8 h-8 mx-auto text-slate-600 opacity-60" />
@@ -626,7 +695,7 @@ export default function KitchenDisplayScreenPage() {
               </div>
 
               {/* Scrollable Order List */}
-              <div className="p-4 space-y-4 overflow-y-auto no-scrollbar flex-1">
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 pr-1.5 scrollbar-thin scrollbar-thumb-slate-700">
                 {preparingOrders.length === 0 ? (
                   <div className="py-16 text-center text-slate-500 space-y-2">
                     <CookingPot className="w-8 h-8 mx-auto text-slate-600 opacity-60" />
@@ -740,7 +809,7 @@ export default function KitchenDisplayScreenPage() {
               </div>
 
               {/* Scrollable Order List */}
-              <div className="p-4 space-y-4 overflow-y-auto no-scrollbar flex-1">
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 pr-1.5 scrollbar-thin scrollbar-thumb-slate-700">
                 {readyOrders.length === 0 ? (
                   <div className="py-16 text-center text-slate-500 space-y-2">
                     <CheckCircle2 className="w-8 h-8 mx-auto text-slate-600 opacity-60" />

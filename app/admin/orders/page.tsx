@@ -9,12 +9,12 @@ import { Button } from '@/components/ui/button';
 import { useApp } from '@/lib/context/app-context';
 import { Order } from '@/types';
 import { formatINR, formatDate, formatTime } from '@/lib/utils';
-import { Eye, Printer, Clock, User, UtensilsCrossed } from 'lucide-react';
+import { Eye, Printer, Clock, User, UtensilsCrossed, CheckCircle2 } from 'lucide-react';
 import { BillPreviewModal } from '@/components/pos/bill-preview-modal';
 import { OrderDetailsModal } from '@/components/pos/order-details-modal';
 
 export default function OrderHistoryPage() {
-  const { orders } = useApp();
+  const { orders, updateOrderStatus } = useApp();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -132,6 +132,17 @@ export default function OrderHistoryPage() {
       header: 'Actions',
       cell: (o) => (
         <div className="flex items-center gap-1.5">
+          {o.status === 'READY' && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => updateOrderStatus(o.id, 'COMPLETED', 'PAID', o.paymentMethod || 'CASH')}
+              className="text-xs h-8 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
+              title="Complete Order & Mark Paid"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Complete
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

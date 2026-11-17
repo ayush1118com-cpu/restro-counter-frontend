@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/types';
 import { formatINR, formatDate, formatTime } from '@/lib/utils';
-import { Clock, Printer, User, Phone, CreditCard, UtensilsCrossed, Car } from 'lucide-react';
+import { Clock, Printer, User, Phone, CreditCard, UtensilsCrossed, Car, CheckCircle2 } from 'lucide-react';
+import { useApp } from '@/lib/context/app-context';
 
 export interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -21,7 +22,13 @@ export function OrderDetailsModal({
   order,
   onPrintBill,
 }: OrderDetailsModalProps) {
+  const { updateOrderStatus } = useApp();
   if (!order) return null;
+
+  const handleComplete = () => {
+    updateOrderStatus(order.id, 'COMPLETED', 'PAID', order.paymentMethod || 'CASH');
+    onClose();
+  };
 
   return (
     <Modal
@@ -191,7 +198,15 @@ export function OrderDetailsModal({
           )}
         </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
+          {order.status !== 'COMPLETED' && (
+            <Button
+              onClick={handleComplete}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5" /> Settle Payment & Complete
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Close
           </Button>

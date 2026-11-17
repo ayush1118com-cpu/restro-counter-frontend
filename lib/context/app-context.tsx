@@ -110,7 +110,12 @@ interface AppContextType {
     items: { itemId: string; name: string; price: number; quantity: number; requiresKitchen?: boolean }[],
     paymentMethod?: PaymentMethod
   ) => Promise<Order | null>;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateOrderStatus: (
+    orderId: string,
+    status: OrderStatus,
+    paymentStatus?: 'PAID' | 'PENDING' | 'PARTIALLY_PAID',
+    paymentMethod?: PaymentMethod
+  ) => void;
 
   // Sound alert trigger
   playOrderNotificationSound: () => void;
@@ -368,7 +373,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    authFetch(`${API_URL}/orders`)
+    authFetch(`${API_URL}/orders?limit=200&sortBy=createdAt&sortOrder=desc`)
       .then(resData => {
         if (resData.success && Array.isArray(resData.data)) {
           // Map backend format to frontend format
@@ -1780,10 +1785,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Broadcast to other open browser tabs (e.g. Kitchen Display screen)
     if (typeof window !== 'undefined') {
       try {
-        const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
-        const channel = new BroadcastChannel(channelName);
-        channel.postMessage({ type: 'NEW_ORDER', order: newOrder, payment: newPayment });
-        channel.close();
+        const msg = { type: 'NEW_ORDER', order: newOrder, payment: newPayment };
+        const ch1 = new BroadcastChannel('restro_orders_sync');
+        ch1.postMessage(msg);
+        ch1.close();
+        if (currentUser?.restaurantId) {
+          const ch2 = new BroadcastChannel(`restro_orders_sync_${currentUser.restaurantId}`);
+          ch2.postMessage(msg);
+          ch2.close();
+        }
       } catch (e) {}
     }
 
@@ -1798,14 +1808,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newOrder;
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    // Broadcast status change to other tabs
+  const updateOrderStatus = (
+    orderId: string,
+    status: OrderStatus,
+    paymentStatus?: 'PAID' | 'PENDING' | 'PARTIALLY_PAID',
+    paymentMethod?: PaymentMethod
+  ) => {
+    const finalPaymentStatus = paymentStatus || (status === 'COMPLETED' ? 'PAID' : undefined);
+
+    // Broadcast status change to all open tabs (kitchen & counter)
     if (typeof window !== 'undefined') {
       try {
-        const channelName = currentUser?.restaurantId ? `restro_orders_sync_${currentUser.restaurantId}` : 'restro_orders_sync';
-        const channel = new BroadcastChannel(channelName);
-        channel.postMessage({ type: 'UPDATE_STATUS', orderId, status });
-        channel.close();
+        const msg = { type: 'UPDATE_STATUS', orderId, status, paymentStatus: finalPaymentStatus, paymentMethod };
+        const ch1 = new BroadcastChannel('restro_orders_sync');
+        ch1.postMessage(msg);
+        ch1.close();
+        if (currentUser?.restaurantId) {
+          const ch2 = new BroadcastChannel(`restro_orders_sync_${currentUser.restaurantId}`);
+          ch2.postMessage(msg);
+          ch2.close();
+        }
       } catch (e) {}
 
       // MONGODB SYNC
@@ -1818,27 +1840,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             Authorization: `Bearer ${token}`,
             ...(currentUser?.restaurantId ? { 'x-restaurant-id': currentUser.restaurantId } : {}),
           },
-          body: JSON.stringify({ status })
-        }).catch(err => console.error('Failed to sync status to DB:', err));
+          body: JSON.stringify({
+            status,
+            paymentStatus: finalPaymentStatus,
+            paymentMethod,
+          }),
+        }).catch((err) => console.error('Failed to sync status to DB:', err));
       }
     }
 
     setOrders((prev) => {
+      let targetOrder: Order | undefined;
       const updated = prev.map((o) => {
-        if (o.id === orderId) {
-          const itemUpdated = { ...o, status, updatedAt: new Date().toISOString() };
-          toast.info(`Order #${o.orderNumber} status changed to ${status}`);
-          if (status === 'READY') {
+        if (o.id === orderId || (o as any)._id === orderId || o.orderNumber === orderId) {
+          targetOrder = o;
+          const nextPayStatus = finalPaymentStatus || o.paymentStatus || 'PAID';
+          const nextPayMethod = paymentMethod || o.paymentMethod || 'CASH';
+          const isNowPaid = nextPayStatus === 'PAID';
+          const itemUpdated: Order = {
+            ...o,
+            status,
+            paymentStatus: nextPayStatus as any,
+            paymentMethod: nextPayMethod as any,
+            paidAmount: isNowPaid ? o.total : o.paidAmount,
+            dueAmount: isNowPaid ? 0 : o.dueAmount,
+            updatedAt: new Date().toISOString(),
+          };
+
+          if (status === 'COMPLETED') {
+            toast.success(`🎉 Order #${o.orderNumber} Completed successfully!`);
+          } else if (status === 'READY') {
             playOrderNotificationSound();
             toast.success(`Order #${o.orderNumber} is READY for customer pickup!`, {
               duration: 5000,
             });
+          } else {
+            toast.info(`Order #${o.orderNumber} status changed to ${status}`);
           }
           return itemUpdated;
         }
         return o;
       });
       saveStorage('restro_orders', updated);
+
+      // Free table if order had a table assigned
+      if (status === 'COMPLETED' && targetOrder?.tableNumber) {
+        const tblNum = targetOrder.tableNumber;
+        setTables((prevTables) => {
+          const updatedTables = prevTables.map((t) =>
+            t.tableNumber.toLowerCase() === tblNum.toLowerCase()
+              ? { ...t, status: 'VACANT' as const, activeOrderId: undefined }
+              : t
+          );
+          saveStorage('restro_tables', updatedTables);
+          return updatedTables;
+        });
+      }
+
+      // Record / update payment transaction if order is completed
+      if (targetOrder && (status === 'COMPLETED' || finalPaymentStatus === 'PAID')) {
+        const payAmount = targetOrder.total || 0;
+        const newPayment: PaymentTransaction = {
+          id: `pay_${Date.now()}`,
+          restaurantId: targetOrder.restaurantId || currentUser?.restaurantId,
+          orderId: targetOrder.id,
+          orderNumber: targetOrder.orderNumber,
+          amount: payAmount,
+          method: paymentMethod || targetOrder.paymentMethod || 'CASH',
+          status: 'SUCCESS',
+          createdAt: new Date().toISOString(),
+        };
+        setPayments((prevPays) => {
+          const exists = prevPays.some((p) => p.orderId === targetOrder!.id || p.orderNumber === targetOrder!.orderNumber);
+          const nextPays = exists
+            ? prevPays.map((p) => (p.orderId === targetOrder!.id || p.orderNumber === targetOrder!.orderNumber ? { ...p, status: 'SUCCESS' as const, amount: payAmount, method: paymentMethod || p.method } : p))
+            : [newPayment, ...prevPays];
+          saveStorage('restro_payments', nextPays);
+          return nextPays;
+        });
+      }
+
       return updated;
     });
   };
@@ -2230,10 +2311,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Broadcast in real-time to Counter Admin tab and Kitchen
     if (typeof window !== 'undefined') {
       try {
-        const channelName = restId ? `restro_orders_sync_${restId}` : 'restro_orders_sync';
-        const channel = new BroadcastChannel(channelName);
-        channel.postMessage({ type: 'NEW_ORDER', order: newOrder });
-        channel.close();
+        const msg = { type: 'NEW_ORDER', order: newOrder };
+        const ch1 = new BroadcastChannel('restro_orders_sync');
+        ch1.postMessage(msg);
+        ch1.close();
+        if (restId) {
+          const ch2 = new BroadcastChannel(`restro_orders_sync_${restId}`);
+          ch2.postMessage(msg);
+          ch2.close();
+        }
       } catch (e) {}
     }
 

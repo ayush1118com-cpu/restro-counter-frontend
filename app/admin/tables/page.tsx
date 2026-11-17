@@ -28,7 +28,7 @@ import Link from 'next/link';
 import { APP_URL } from '@/lib/config';
 
 export default function AdminTablesPage() {
-  const { tables, addTable, deleteTable, updateTableStatus, currentRestaurant, currentUser, orders } = useApp();
+  const { tables, addTable, deleteTable, updateTableStatus, currentRestaurant, currentUser, orders, updateOrderStatus } = useApp();
 
   const defaultDomain = APP_URL || 'https://restro-counter.vercel.app';
 
@@ -364,7 +364,7 @@ export default function AdminTablesPage() {
 
                 {/* Active Order Notice if Occupied */}
                 {activeOrder && (
-                  <div className="p-2 bg-amber-50 rounded-lg border border-amber-200 text-xs mb-3 space-y-0.5">
+                  <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs mb-3 space-y-1.5 shadow-2xs">
                     <p className="font-bold text-amber-950 flex items-center justify-between">
                       <span>Order #{activeOrder.orderNumber}</span>
                       <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded font-black">
@@ -374,6 +374,15 @@ export default function AdminTablesPage() {
                     <p className="text-[11px] text-amber-800 truncate">
                       {activeOrder.customerName} • ₹{activeOrder.total}
                     </p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        updateOrderStatus(activeOrder.id, 'COMPLETED', 'PAID', activeOrder.paymentMethod || 'CASH');
+                      }}
+                      className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-7 py-0 mt-1 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Settle Bill & Free Table
+                    </Button>
                   </div>
                 )}
               </div>

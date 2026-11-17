@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Tabs, TabItem } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
 import { useApp } from '@/lib/context/app-context';
 import { Order, OrderStatus } from '@/types';
 import { formatINR, formatDate, formatTimeAgo, formatTime } from '@/lib/utils';
@@ -17,6 +18,8 @@ export default function LiveOrdersPage() {
   const [selectedBillOrder, setSelectedBillOrder] = useState<Order | null>(null);
   const [selectedAddItemsOrder, setSelectedAddItemsOrder] = useState<Order | null>(null);
   const [autoPrintBill, setAutoPrintBill] = useState(false);
+  const [orderToComplete, setOrderToComplete] = useState<Order | null>(null);
+  const [completePaymentMethod, setCompletePaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
 
   const tabs: TabItem[] = [
     { id: 'ALL', label: 'All Orders', count: orders.length },
@@ -150,7 +153,7 @@ export default function LiveOrdersPage() {
               </div>
             </div>
 
-            {/* Action Buttons: Accept Order, Add Items, View Bill and Cancel */}
+            {/* Action Buttons: Accept, Complete, Add Items, View Bill */}
             <div className="pt-2 flex flex-col gap-2">
               {order.status === 'NEW' && (
                 <Button
@@ -163,8 +166,48 @@ export default function LiveOrdersPage() {
                 </Button>
               )}
 
+              {/* Ready Order -> Primary Action: Receive Payment & Complete Order */}
+              {order.status === 'READY' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setCompletePaymentMethod((order.paymentMethod as any) || 'CASH');
+                    setOrderToComplete(order);
+                  }}
+                  className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center justify-center gap-1.5 py-2.5 cursor-pointer animate-pulse"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Receive Payment & Complete Order
+                </Button>
+              )}
+
+              {/* Preparing or Accepted -> Quick Mark Ready or Complete */}
+              {(order.status === 'ACCEPTED' || order.status === 'PREPARING') && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateOrderStatus(order.id, 'READY')}
+                    className="flex-1 text-xs font-bold text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                  >
+                    Mark Ready
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCompletePaymentMethod((order.paymentMethod as any) || 'CASH');
+                      setOrderToComplete(order);
+                    }}
+                    className="flex-1 text-xs font-bold text-gray-700 hover:text-emerald-700 hover:border-emerald-300"
+                  >
+                    Complete Order
+                  </Button>
+                </div>
+              )}
+
               <div className="flex gap-2">
-                {order.status !== 'CANCELLED' && (
+                {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
                   <Button
                     variant="primary"
                     size="sm"

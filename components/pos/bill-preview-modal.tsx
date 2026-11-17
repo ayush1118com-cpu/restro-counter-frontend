@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Order } from '@/types';
 import { formatINR, formatDate, formatTime } from '@/lib/utils';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 
 export interface BillPreviewModalProps {
@@ -16,9 +16,15 @@ export interface BillPreviewModalProps {
 }
 
 export function BillPreviewModal({ isOpen, onClose, order, autoPrint = false }: BillPreviewModalProps) {
-  const { currentUser, restaurants, currentRestaurant } = useApp();
+  const { currentUser, restaurants, currentRestaurant, updateOrderStatus } = useApp();
   const isPrintingRef = React.useRef(false);
   const hasAutoPrintedRef = React.useRef(false);
+
+  const handleMarkPaidAndComplete = () => {
+    if (!order) return;
+    updateOrderStatus(order.id, 'COMPLETED', 'PAID', order.paymentMethod || 'CASH');
+    onClose();
+  };
 
   // ====== RESTAURANT DATA FOR BILL ======
   const STALE_NAMES = ['Spice Garden Restaurant', 'Spice Garden', 'Counter Restaurant Outlet', 'Restro Counter Outlet'];
@@ -356,12 +362,22 @@ TOTAL:       ${formatINR(orderTotal)}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2 print:hidden">
+        <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 print:hidden">
+          {order?.status !== 'COMPLETED' && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleMarkPaidAndComplete}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-500/20"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5" /> Settle Payment & Complete
+            </Button>
+          )}
           <Button variant="outline" size="md" onClick={handleDownload}>
-            <Download className="w-4 h-4" /> Download Bill
+            <Download className="w-4 h-4 mr-1" /> Download Bill
           </Button>
           <Button variant="primary" size="md" onClick={handlePrint} className="font-bold shadow-md shadow-amber-500/20">
-            <Printer className="w-4 h-4" /> Print Bill
+            <Printer className="w-4 h-4 mr-1" /> Print Bill
           </Button>
         </div>
       </div>
