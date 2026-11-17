@@ -32,6 +32,7 @@ export interface Restaurant {
   receiptFooter?: string;
   hasTableQrOrdering?: boolean;
   tableQrEnabled?: boolean;
+  posEnabled?: boolean;
 }
 
 export interface RestaurantTable {

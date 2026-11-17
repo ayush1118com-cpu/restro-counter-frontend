@@ -36,7 +36,7 @@ import {
 } from 'recharts';
 
 export default function RestaurantDashboardPage() {
-  const { orders, payments, currentUser } = useApp();
+  const { orders, payments, currentUser, currentRestaurant } = useApp();
 
   const todaysOrdersCount = orders.length;
   const todaysSalesTotal = orders.reduce((sum, o) => sum + o.total, 0);
@@ -93,11 +93,19 @@ export default function RestaurantDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/admin/pos">
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs px-4 h-10 rounded-xl shadow-xs gap-2">
-              <Calculator className="w-4 h-4" /> Open Counter POS
-            </Button>
-          </Link>
+          {currentRestaurant?.posEnabled !== false ? (
+            <Link href="/admin/pos">
+              <Button className="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs px-4 h-10 rounded-xl shadow-xs gap-2">
+                <Calculator className="w-4 h-4" /> Open Counter POS
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/admin/live-orders">
+              <Button className="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs px-4 h-10 rounded-xl shadow-xs gap-2">
+                <Flame className="w-4 h-4" /> View Live Orders
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

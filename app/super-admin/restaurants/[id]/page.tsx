@@ -70,6 +70,8 @@ export default function RestaurantDetailsPage() {
               ordersCount: r.metrics?.totalOrders || 0,
               salesTotal: r.metrics?.totalRevenue || 0,
               activeMenuCount: 0,
+              posEnabled: r.posEnabled !== undefined ? r.posEnabled : true,
+              tableQrEnabled: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               hasTableQrOrdering: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               createdAt: r.createdAt,
             });
@@ -242,12 +244,56 @@ export default function RestaurantDetailsPage() {
             </div>
 
             {/* Feature Access & Module Permissions (RBAC) */}
-            <div className="pt-4 border-t border-gray-100 space-y-2">
+            <div className="pt-4 border-t border-gray-100 space-y-3">
               <p className="text-gray-900 font-bold text-xs flex items-center justify-between">
-                <span>Modules & Permissions</span>
-                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-black">SUPER ADMIN</span>
+                <span>Client Modules & Permissions</span>
+                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-black">SUPER ADMIN CONTROL</span>
               </p>
-              
+
+              {/* 1. Counter POS Module */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/70 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
+                    <span>🖥️ Counter POS System</span>
+                    {restaurant.posEnabled !== false ? (
+                      <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full">ENABLED</span>
+                    ) : (
+                      <span className="text-[9px] font-black bg-gray-200 text-gray-600 px-1.5 py-0.2 rounded-full">DISABLED</span>
+                    )}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Counter point of sale for taking walk-in orders, billing & offline counter payments.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const nextVal = restaurant.posEnabled === false;
+                    await updateRestaurant(restaurant.id, { posEnabled: nextVal });
+                    setLiveRestaurant((prev) => (prev ? { ...prev, posEnabled: nextVal } : null));
+                    Swal.fire({
+                      icon: nextVal ? 'success' : 'info',
+                      title: nextVal ? 'Counter POS Enabled!' : 'Counter POS Disabled',
+                      text: nextVal
+                        ? `Restaurant "${restaurant.name}" now has access to Counter POS billing.`
+                        : `Counter POS has been hidden and disabled for "${restaurant.name}".`,
+                      timer: 3000,
+                      showConfirmButton: false,
+                      customClass: { popup: 'rounded-2xl font-sans' },
+                    });
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                    restaurant.posEnabled !== false
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  {restaurant.posEnabled !== false ? 'Disable' : 'Enable'}
+                </button>
+              </div>
+
+              {/* 2. Table & Room QR Ordering */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/70 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-xs text-gray-900 flex items-center gap-1.5">

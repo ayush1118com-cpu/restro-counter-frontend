@@ -113,7 +113,7 @@ export default function LiveOrdersPage() {
 
             {/* Items List */}
             <div className="space-y-2 py-1">
-              {order.items.map((item, idx) => (
+              {(order.items || []).map((item, idx) => (
                 <div key={idx} className="space-y-0.5">
                   <div className="flex justify-between items-center text-xs font-semibold text-gray-800">
                     <span className="flex items-center gap-1.5 flex-wrap">

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import {
   Search,
   Plus,
@@ -15,7 +17,7 @@ import {
   Sparkles,
   Wifi,
   WifiOff,
-  StickyNote,
+  StickyNote, Calculator,
 } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 import { formatINR } from '@/lib/utils';
@@ -43,6 +45,28 @@ export default function POSScreenPage() {
   } = useApp();
 
   const activeGstRate = currentRestaurant?.gstRate !== undefined ? currentRestaurant.gstRate : 5;
+
+  if (currentRestaurant?.posEnabled === false) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-xl mx-auto my-12">
+        <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
+          <Calculator className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-black text-gray-900 mb-2">Counter POS Module is Disabled</h2>
+        <p className="text-gray-600 text-sm max-w-md mb-6 leading-relaxed">
+          Super Admin has configured this restaurant for <strong>Scanner / Table QR Ordering Only</strong>. Counter POS is currently deactivated for <strong>{currentRestaurant?.name || 'this restaurant'}</strong>.
+        </p>
+        <div className="flex gap-3">
+          <Link href="/admin/dashboard">
+            <Button variant="primary">Return to Dashboard</Button>
+          </Link>
+          <Link href="/admin/live-orders">
+            <Button variant="outline">View Live Orders</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('cat_all');
   const [search, setSearch] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);

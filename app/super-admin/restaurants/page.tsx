@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Eye, Edit, ShieldAlert, CheckCircle, Ban, Building2, ChefHat, Trash2, KeyRound, QrCode } from 'lucide-react';
+import { Plus, Search, Eye, Edit, ShieldAlert, CheckCircle, Ban, Building2, ChefHat, Trash2, KeyRound, QrCode, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, Column } from '@/components/ui/data-table';
@@ -94,48 +94,81 @@ export default function RestaurantsPage() {
       ),
     },
     {
-      header: 'Table QR & Scanner',
-      cell: (r) => (
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={async () => {
-              const next = !r.hasTableQrOrdering;
-              await updateRestaurant(r.id, { hasTableQrOrdering: next, tableQrEnabled: next });
-              Swal.fire({
-                icon: next ? 'success' : 'info',
-                title: next ? 'Table QR Ordering Enabled!' : 'Table QR Ordering Disabled',
-                text: next
-                  ? `Table QR ordering & Table management is now ENABLED for ${r.name}.`
-                  : `Table QR ordering is now DISABLED for ${r.name}.`,
-                timer: 2200,
-                showConfirmButton: false,
-                customClass: { popup: 'rounded-2xl font-sans' },
-              });
-            }}
-            className={`px-2 py-1 rounded-full text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
-              r.hasTableQrOrdering
-                ? 'bg-purple-100 text-purple-900 border border-purple-300 hover:bg-purple-200'
-                : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
-            }`}
-            title={r.hasTableQrOrdering ? 'Click to Disable Table QR' : 'Click to Enable Table QR for this Restaurant'}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${r.hasTableQrOrdering ? 'bg-purple-600 animate-pulse' : 'bg-gray-400'}`} />
-            <span>{r.hasTableQrOrdering ? 'ON' : 'OFF'}</span>
-          </button>
+      header: 'Active Modules (POS / Scanner)',
+      cell: (r) => {
+        const isPosActive = r.posEnabled !== false;
+        const isQrActive = r.hasTableQrOrdering !== false;
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTablesModalRestro(r)}
-            className="text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 h-6.5 rounded-lg flex items-center gap-1"
-            title="Manage Tables & Print QR Scanner Stands"
-          >
-            <QrCode className="w-3 h-3 text-purple-600" />
-            <span>Tables</span>
-          </Button>
-        </div>
-      ),
+        return (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* POS Toggle */}
+            <button
+              type="button"
+              onClick={async () => {
+                const nextPos = !isPosActive;
+                await updateRestaurant(r.id, { posEnabled: nextPos });
+                Swal.fire({
+                  icon: nextPos ? 'success' : 'info',
+                  title: nextPos ? 'Counter POS Enabled!' : 'Counter POS Disabled',
+                  text: nextPos
+                    ? `Counter POS billing is now ENABLED for ${r.name}.`
+                    : `Counter POS billing is now DISABLED for ${r.name}.`,
+                  timer: 2000,
+                  showConfirmButton: false,
+                  customClass: { popup: 'rounded-2xl font-sans' },
+                });
+              }}
+              className={`px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                isPosActive
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                  : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+              }`}
+              title={isPosActive ? 'Click to Disable Counter POS' : 'Click to Enable Counter POS'}
+            >
+              <Calculator className="w-3 h-3" />
+              <span>POS: {isPosActive ? 'ON' : 'OFF'}</span>
+            </button>
+
+            {/* Table QR Scanner Toggle */}
+            <button
+              type="button"
+              onClick={async () => {
+                const nextQr = !isQrActive;
+                await updateRestaurant(r.id, { hasTableQrOrdering: nextQr, tableQrEnabled: nextQr });
+                Swal.fire({
+                  icon: nextQr ? 'success' : 'info',
+                  title: nextQr ? 'Scanner / Table QR Enabled!' : 'Scanner / Table QR Disabled',
+                  text: nextQr
+                    ? `Table QR ordering & Table management is now ENABLED for ${r.name}.`
+                    : `Table QR ordering is now DISABLED for ${r.name}.`,
+                  timer: 2000,
+                  showConfirmButton: false,
+                  customClass: { popup: 'rounded-2xl font-sans' },
+                });
+              }}
+              className={`px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                isQrActive
+                  ? 'bg-purple-100 text-purple-900 border border-purple-300 hover:bg-purple-200'
+                  : 'bg-gray-100 text-gray-400 border border-gray-200 hover:bg-gray-200 hover:text-gray-600'
+              }`}
+              title={isQrActive ? 'Click to Disable Table QR' : 'Click to Enable Table QR for this Restaurant'}
+            >
+              <QrCode className="w-3 h-3" />
+              <span>Scanner: {isQrActive ? 'ON' : 'OFF'}</span>
+            </button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTablesModalRestro(r)}
+              className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-1.5 py-0.5 h-6 rounded-md flex items-center gap-1"
+              title="Manage Tables & Print QR Scanner Stands"
+            >
+              <span>Tables</span>
+            </Button>
+          </div>
+        );
+      },
     },
     {
       header: 'Actions',

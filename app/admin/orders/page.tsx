@@ -27,7 +27,7 @@ export default function OrderHistoryPage() {
       String(o.orderNumber || '').includes(search) ||
       (o.customerName && o.customerName.toLowerCase().includes(search.toLowerCase())) ||
       (o.customerPhone && o.customerPhone.includes(search)) ||
-      o.items.some((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+      (o.items || []).some((i) => (i.name || '').toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
     const matchesPayment = paymentFilter === 'ALL' || o.paymentMethod === paymentFilter;
     return matchesSearch && matchesStatus && matchesPayment;
@@ -67,12 +67,12 @@ export default function OrderHistoryPage() {
       header: 'Items Section',
       cell: (o) => (
         <div className="flex flex-col gap-1 py-1 max-w-xs">
-          {o.items.map((item, idx) => (
+          {(o.items || []).map((item, idx) => (
             <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-800">
               <span className="font-bold text-amber-800 bg-amber-50 border border-amber-200/60 px-1.5 py-0.2 rounded text-[11px] shrink-0">
-                {item.quantity}×
+                {item.quantity || 1}×
               </span>
-              <span className="font-semibold text-gray-900 truncate">{item.name}</span>
+              <span className="font-semibold text-gray-900 truncate">{item.name || 'Item'}</span>
               {item.notes && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50/80 border border-amber-200/50 px-1 rounded truncate">
                   📝 {item.notes}
@@ -204,18 +204,22 @@ export default function OrderHistoryPage() {
 
       <DataTable columns={columns} data={filtered} emptyTitle="No orders match filters" />
 
-      <BillPreviewModal
-        isOpen={!!selectedBillOrder}
-        onClose={() => setSelectedBillOrder(null)}
-        order={selectedBillOrder}
-      />
+      {selectedBillOrder && (
+        <BillPreviewModal
+          isOpen={!!selectedBillOrder}
+          onClose={() => setSelectedBillOrder(null)}
+          order={selectedBillOrder}
+        />
+      )}
 
-      <OrderDetailsModal
-        isOpen={!!selectedDetailsOrder}
-        onClose={() => setSelectedDetailsOrder(null)}
-        order={selectedDetailsOrder}
-        onPrintBill={(o) => setSelectedBillOrder(o)}
-      />
+      {selectedDetailsOrder && (
+        <OrderDetailsModal
+          isOpen={!!selectedDetailsOrder}
+          onClose={() => setSelectedDetailsOrder(null)}
+          order={selectedDetailsOrder}
+          onPrintBill={(o) => setSelectedBillOrder(o)}
+        />
+      )}
     </div>
   );
 }

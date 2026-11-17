@@ -5,9 +5,9 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Order } from '@/types';
 import { formatINR, formatDate, formatTime } from '@/lib/utils';
-import { Printer, Download, CheckCircle2 } from 'lucide-react';
+import { Printer, Download } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
-// iosfoeiy
+
 export interface BillPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,32 +20,154 @@ export function BillPreviewModal({ isOpen, onClose, order, autoPrint = false }: 
   const isPrintingRef = React.useRef(false);
   const hasAutoPrintedRef = React.useRef(false);
 
-  if (!order) return null;
-
   // ====== RESTAURANT DATA FOR BILL ======
   const STALE_NAMES = ['Spice Garden Restaurant', 'Spice Garden', 'Counter Restaurant Outlet', 'Restro Counter Outlet'];
 
+  const restList = Array.isArray(restaurants) ? restaurants : [];
+
   const activeRestaurant =
     currentRestaurant ||
-    restaurants.find((r) => r.id === currentUser?.restaurantId) ||
-    restaurants.find((r) => r.email === currentUser?.email) ||
-    restaurants.find((r) => r.phone === currentUser?.phone) ||
-    (restaurants.length > 0 ? restaurants[0] : null);
+    (currentUser?.restaurantId ? restList.find((r) => r && r.id === currentUser.restaurantId) : null) ||
+    (currentUser?.email ? restList.find((r) => r && r.email === currentUser.email) : null) ||
+    (currentUser?.phone ? restList.find((r) => r && r.phone === currentUser.phone) : null) ||
+    (restList.length > 0 ? restList[0] : null);
 
   // Restaurant Name: always use the ACTUAL restaurant record name
-  const displayName = activeRestaurant?.name
-    || (currentUser?.restaurantName && !STALE_NAMES.includes(currentUser.restaurantName) ? currentUser.restaurantName : null)
-    || (currentUser?.name ? `${currentUser.name.replace(/\s*\(Counter Admin\)/i, '').replace(/\s*\(Admin\)/i, '').trim()}'s Restaurant` : 'Restaurant Counter');
+  const displayName =
+    activeRestaurant?.name ||
+    (currentUser?.restaurantName && !STALE_NAMES.includes(currentUser.restaurantName) ? currentUser.restaurantName : null) ||
+    (typeof currentUser?.name === 'string' && currentUser.name
+      ? `${currentUser.name.replace(/\s*\(Counter Admin\)/i, '').replace(/\s*\(Admin\)/i, '').trim()}'s Restaurant`
+      : 'Restaurant Counter');
 
   // Address: always from restaurant record
   const displayAddress = activeRestaurant?.address
     ? `${activeRestaurant.address}${activeRestaurant.city ? `, ${activeRestaurant.city}` : ''}`
     : 'Counter Outlet';
 
-  // Phone: always from restaurant record
+  // Phone & GST
   const displayPhone = activeRestaurant?.phone || currentUser?.phone || '';
   const displayGstin = activeRestaurant?.gstin || '';
-  const activeGstRate = activeRestaurant?.gstRate !== undefined ? activeRestaurant.gstRate : 5;
+  const activeGstRate = activeRestaurant?.gstRate !== undefined ? Number(activeRestaurant.gstRate) || 0 : 5;
+
+  const handlePrint = React.useCallback(() => {
+    if (isPrintingRef.current) return;
+    isPrintingRef.current = true;
+    setTimeout(() => {
+      isPrintingRef.current = false;
+    }, 1500);
+
+    const printContent = document.getElementById('printable-receipt');
+    if (!printContent) {
+      if (typeof window !== 'undefined') window.print();
+      return;
+    }
+
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>Print Bill</title>
+              <style>
+                @page { margin: 2mm; } 
+                body { 
+                  font-family: 'Courier New', Courier, monospace; 
+                  width: 100%; 
+                  max-width: 76mm; 
+                  margin: 0 auto; 
+                  padding: 0 4px; 
+                  color: black; 
+                  background: white; 
+                  font-size: 12px;
+                }
+                * { box-sizing: border-box; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .font-bold, .font-black { font-weight: bold; }
+                .font-semibold { font-weight: 600; }
+                .font-extrabold { font-weight: 800; }
+                .uppercase { text-transform: uppercase; }
+                .tracking-wider { letter-spacing: 0.05em; }
+                .flex { display: flex; }
+                .items-center { align-items: center; }
+                .justify-between { justify-content: space-between; }
+                .border-b { border: none !important; border-bottom: 1px dashed #000 !important; }
+                .border-t { border: none !important; border-top: 1px dashed #000 !important; }
+                .border-dashed { border-style: none !important; }
+                .border-gray-400, .border-gray-300, .border-gray-200 { border-color: #000 !important; }
+                .py-1\\.5 { padding-top: 6px; padding-bottom: 6px; }
+                .py-2 { padding-top: 8px; padding-bottom: 8px; }
+                .py-3 { padding-top: 12px; padding-bottom: 12px; }
+                .pt-2 { padding-top: 8px; }
+                .pt-3 { padding-top: 12px; }
+                .pb-1 { padding-bottom: 4px; }
+                .pb-2 { padding-bottom: 8px; }
+                .pb-4 { padding-bottom: 16px; }
+                .my-2 { margin-top: 8px; margin-bottom: 8px; }
+                .mb-1 { margin-bottom: 4px; }
+                .mt-1 { margin-top: 4px; }
+                .mt-4 { margin-top: 16px; }
+                .space-y-1 > * + * { margin-top: 4px; }
+                .space-y-2 > * + * { margin-top: 8px; }
+                .space-y-4 > * + * { margin-top: 16px; }
+                .space-y-6 > * + * { margin-top: 24px; }
+                .text-xs { font-size: 11px; }
+                .text-sm { font-size: 13px; }
+                .text-base { font-size: 15px; }
+                .text-xl { font-size: 18px; }
+                .text-gray-900, .text-gray-800, .text-gray-700 { color: #000 !important; }
+                .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .max-w-\\[140px\\] { max-width: 140px; }
+                .inline-block { display: inline-block; }
+                .px-2\\.5 { padding-left: 8px; padding-right: 8px; }
+                .bg-emerald-100 { background: white; border: 1px solid black !important; }
+                p, h3 { margin: 0; }
+                svg { display: none; }
+                .rounded-2xl { border-radius: 0; border: none !important; padding: 0 !important; box-shadow: none; }
+              </style>
+            </head>
+            <body>
+              ${printContent.innerHTML}
+            </body>
+          </html>
+        `);
+        iframeDoc.close();
+
+        iframe.contentWindow?.focus();
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.print();
+          } catch (e) {
+            console.error('Print failed:', e);
+          }
+          setTimeout(() => {
+            try {
+              if (iframe.parentNode) {
+                iframe.parentNode.removeChild(iframe);
+              }
+            } catch (_) {}
+          }, 1000);
+        }, 300);
+      }
+    } catch (err) {
+      console.error('Print error:', err);
+      if (typeof window !== 'undefined') window.print();
+    }
+  }, []);
 
   React.useEffect(() => {
     if (isOpen && autoPrint && order && !hasAutoPrintedRef.current) {
@@ -58,126 +180,35 @@ export function BillPreviewModal({ isOpen, onClose, order, autoPrint = false }: 
     if (!isOpen) {
       hasAutoPrintedRef.current = false;
     }
-  }, [isOpen, autoPrint, order]);
+  }, [isOpen, autoPrint, order, handlePrint]);
 
-  const handlePrint = () => {
-    if (isPrintingRef.current) return;
-    isPrintingRef.current = true;
-    setTimeout(() => {
-      isPrintingRef.current = false;
-    }, 1500);
+  if (!isOpen || !order) return null;
 
-    const printContent = document.getElementById('printable-receipt');
-    if (!printContent) return;
-    
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-    
-    const iframeDoc = iframe.contentWindow?.document;
-    if (iframeDoc) {
-      iframeDoc.open();
-      iframeDoc.write(`
-        <html>
-          <head>
-            <title>Print Bill</title>
-            <style>
-              @page { margin: 2mm; } 
-              body { 
-                font-family: 'Courier New', Courier, monospace; 
-                width: 100%; 
-                max-width: 76mm; 
-                margin: 0 auto; 
-                padding: 0 4px; 
-                color: black; 
-                background: white; 
-                font-size: 12px;
-              }
-              * { box-sizing: border-box; }
-              .text-center { text-align: center; }
-              .text-right { text-align: right; }
-              .font-bold, .font-black { font-weight: bold; }
-              .font-semibold { font-weight: 600; }
-              .font-extrabold { font-weight: 800; }
-              .uppercase { text-transform: uppercase; }
-              .tracking-wider { letter-spacing: 0.05em; }
-              .flex { display: flex; }
-              .items-center { align-items: center; }
-              .justify-between { justify-content: space-between; }
-              .border-b { border: none !important; border-bottom: 1px dashed #000 !important; }
-              .border-t { border: none !important; border-top: 1px dashed #000 !important; }
-              .border-dashed { border-style: none !important; }
-              .border-gray-400, .border-gray-300, .border-gray-200 { border-color: #000 !important; }
-              .py-1\.5 { padding-top: 6px; padding-bottom: 6px; }
-              .py-2 { padding-top: 8px; padding-bottom: 8px; }
-              .py-3 { padding-top: 12px; padding-bottom: 12px; }
-              .pt-2 { padding-top: 8px; }
-              .pt-3 { padding-top: 12px; }
-              .pb-1 { padding-bottom: 4px; }
-              .pb-2 { padding-bottom: 8px; }
-              .pb-4 { padding-bottom: 16px; }
-              .my-2 { margin-top: 8px; margin-bottom: 8px; }
-              .mb-1 { margin-bottom: 4px; }
-              .mt-1 { margin-top: 4px; }
-              .mt-4 { margin-top: 16px; }
-              .space-y-1 > * + * { margin-top: 4px; }
-              .space-y-2 > * + * { margin-top: 8px; }
-              .space-y-4 > * + * { margin-top: 16px; }
-              .space-y-6 > * + * { margin-top: 24px; }
-              .text-xs { font-size: 11px; }
-              .text-sm { font-size: 13px; }
-              .text-base { font-size: 15px; }
-              .text-xl { font-size: 18px; }
-              .text-gray-900, .text-gray-800, .text-gray-700 { color: #000 !important; }
-              .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-              .max-w-\[140px\] { max-width: 140px; }
-              .inline-block { display: inline-block; }
-              .px-2\.5 { padding-left: 8px; padding-right: 8px; }
-              .bg-emerald-100 { background: white; border: 1px solid black !important; }
-              p, h3 { margin: 0; }
-              svg { display: none; }
-              .rounded-2xl { border-radius: 0; border: none !important; padding: 0 !important; box-shadow: none; }
-            </style>
-          </head>
-          <body>
-            ${printContent.innerHTML}
-          </body>
-        </html>
-      `);
-      iframeDoc.close();
-      
-      iframe.contentWindow?.focus();
-      setTimeout(() => {
-        iframe.contentWindow?.print();
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 500);
-      }, 250);
-    }
-  };
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+  const orderSubtotal = Number(order.subtotal) || 0;
+  const orderTax = Number(order.tax) || 0;
+  const orderDiscount = Number(order.discount) || 0;
+  const orderTotal = Number(order.total) || 0;
+  const orderDueAmount = order.dueAmount !== undefined ? Number(order.dueAmount) : 0;
+  const orderPaidAmount = order.paidAmount !== undefined ? Number(order.paidAmount) : Math.max(0, orderTotal - orderDueAmount);
 
   const handleDownload = () => {
     const textContent = `
 ========================================
-   ${displayName.toUpperCase()}
+   ${(displayName || 'RESTAURANT COUNTER').toUpperCase()}
    ${displayAddress}
    ${displayPhone ? `Phone: ${displayPhone}` : ''}
 ========================================
-Order #${order.orderNumber}
+Order #${order.orderNumber || ''}
 Date: ${formatDate(order.createdAt)}
-Payment Method: ${order.paymentMethod} (${order.paymentStatus})
+Payment Method: ${order.paymentMethod || 'CASH'} (${order.paymentStatus || 'PAID'})
 ----------------------------------------
-${order.items.map((i) => `${i.name.padEnd(20)} ${i.quantity} x ${formatINR(i.price)} = ${formatINR(i.quantity * i.price)}`).join('\n')}
+${orderItems.map((i) => `${(i.name || 'Item').padEnd(20)} ${i.quantity || 1} x ${formatINR(i.price || 0)} = ${formatINR((i.quantity || 1) * (i.price || 0))}`).join('\n')}
 ----------------------------------------
-Subtotal:    ${formatINR(order.subtotal)}
-Tax (5% GST): ${formatINR(order.tax)}
-Discount:    ${formatINR(order.discount)}
-TOTAL:       ${formatINR(order.total)}
+Subtotal:    ${formatINR(orderSubtotal)}
+Tax (${activeGstRate}% GST): ${formatINR(orderTax)}
+Discount:    ${formatINR(orderDiscount)}
+TOTAL:       ${formatINR(orderTotal)}
 ========================================
    Thank you! Please visit again.
 ========================================
@@ -186,7 +217,7 @@ TOTAL:       ${formatINR(order.total)}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Bill_Order_${order.orderNumber}.txt`;
+    a.download = `Bill_Order_${order.orderNumber || 'receipt'}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -214,7 +245,7 @@ TOTAL:       ${formatINR(order.total)}
           {/* Order Details */}
           <div className="flex items-center justify-between text-gray-900 py-1.5 border-b border-dashed border-gray-400">
             <div>
-              <p className="font-bold text-gray-900 text-sm">Order #{order.orderNumber}</p>
+              <p className="font-bold text-gray-900 text-sm">Order #{order.orderNumber || ''}</p>
               <p className="text-xs font-semibold text-gray-700">{formatDate(order.createdAt)}</p>
               {order.customerName && (
                 <p className="text-xs font-bold text-gray-800 mt-0.5">
@@ -229,7 +260,7 @@ TOTAL:       ${formatINR(order.total)}
             </div>
             <div className="text-right">
               <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-900 text-[11px] font-extrabold rounded-full uppercase border border-emerald-300">
-                PAID VIA {order.paymentMethod}
+                PAID VIA {order.paymentMethod || 'CASH'}
               </span>
             </div>
           </div>
@@ -241,60 +272,66 @@ TOTAL:       ${formatINR(order.total)}
               <span>Qty × Price</span>
               <span>Amount</span>
             </div>
-            {order.items.map((item, idx) => (
-              <div key={idx} className="space-y-0.5">
-                <div className="flex justify-between items-center text-gray-900 font-semibold">
-                  <span className="truncate max-w-[140px] font-bold">
-                    {item.name}
-                    {item.addedAt && (
-                      <span className="text-[9px] font-bold text-gray-500 block">
-                        (+Added {formatTime(item.addedAt)})
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-gray-800">
-                    {item.quantity} × {formatINR(item.price)}
-                  </span>
-                  <span className="font-extrabold text-gray-900">{formatINR(item.quantity * item.price)}</span>
-                </div>
-                {item.notes && (
-                  <div className="text-[10px] text-gray-600 font-medium pl-1 italic">
-                    ↳ Note: {item.notes}
+            {orderItems.length === 0 ? (
+              <p className="text-gray-400 italic py-2 text-center">No item details available</p>
+            ) : (
+              orderItems.map((item, idx) => (
+                <div key={idx} className="space-y-0.5">
+                  <div className="flex justify-between items-center text-gray-900 font-semibold">
+                    <span className="truncate max-w-[140px] font-bold">
+                      {item.name || 'Item'}
+                      {item.addedAt && (
+                        <span className="text-[9px] font-bold text-gray-500 block">
+                          (+Added {formatTime(item.addedAt)})
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-gray-800">
+                      {item.quantity || 1} × {formatINR(item.price || 0)}
+                    </span>
+                    <span className="font-extrabold text-gray-900">
+                      {formatINR((item.quantity || 1) * (item.price || 0))}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  {item.notes && (
+                    <div className="text-[10px] text-gray-600 font-medium pl-1 italic">
+                      ↳ Note: {item.notes}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
 
           {/* Totals */}
           <div className="border-t border-dashed border-gray-400 pt-3 space-y-1 text-gray-900 font-semibold">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-bold">{formatINR(order.subtotal)}</span>
+              <span className="font-bold">{formatINR(orderSubtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax ({activeGstRate}% GST)</span>
-              <span className="font-bold">{formatINR(order.tax)}</span>
+              <span className="font-bold">{formatINR(orderTax)}</span>
             </div>
-            {order.discount > 0 && (
+            {orderDiscount > 0 && (
               <div className="flex justify-between text-emerald-700 font-bold">
                 <span>Discount</span>
-                <span>-{formatINR(order.discount)}</span>
+                <span>-{formatINR(orderDiscount)}</span>
               </div>
             )}
             <div className="border-t-2 border-gray-900 pt-2 flex justify-between font-black text-base text-gray-900">
               <span>TOTAL BILL</span>
-              <span>{formatINR(order.total)}</span>
+              <span>{formatINR(orderTotal)}</span>
             </div>
-            {order.dueAmount !== undefined && order.dueAmount > 0 && (
+            {orderDueAmount > 0 && (
               <div className="pt-1.5 space-y-1 text-xs border-t border-dotted border-gray-300">
                 <div className="flex justify-between text-emerald-800 font-bold">
                   <span>Amount Paid:</span>
-                  <span>{formatINR(order.paidAmount !== undefined ? order.paidAmount : order.total - order.dueAmount)}</span>
+                  <span>{formatINR(orderPaidAmount)}</span>
                 </div>
                 <div className="flex justify-between text-rose-800 font-black text-sm bg-rose-50 p-1 rounded border border-rose-200">
                   <span>BALANCE DUE (KHATA):</span>
-                  <span>{formatINR(order.dueAmount)}</span>
+                  <span>{formatINR(orderDueAmount)}</span>
                 </div>
               </div>
             )}
@@ -328,32 +365,6 @@ TOTAL:       ${formatINR(order.total)}
           </Button>
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #printable-receipt, #printable-receipt * {
-            visibility: visible;
-          }
-          #printable-receipt {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 80mm;
-            padding: 0;
-            margin: 0;
-            font-size: 12px;
-            color: black;
-          }
-        }
-      `}} />
     </Modal>
   );
 }
-
-
-
-
-
-

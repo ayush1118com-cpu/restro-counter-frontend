@@ -38,6 +38,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Dynamically resolve active restaurant for logged in user
+  const activeRest =
+    restaurants.find((r) => r.id === currentUser?.restaurantId) ||
+    restaurants.find((r) => r.email === currentUser?.email) ||
+    (restaurants.length > 0 ? restaurants[0] : null);
+
   // Role-based route protection
   React.useEffect(() => {
     if (!currentUser) return;
@@ -54,13 +60,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       router.replace('/super-admin');
       return;
     }
-  }, [currentUser, pathname, router]);
 
-  // Dynamically resolve active restaurant for logged in user
-  const activeRest =
-    restaurants.find((r) => r.id === currentUser?.restaurantId) ||
-    restaurants.find((r) => r.email === currentUser?.email) ||
-    (restaurants.length > 0 ? restaurants[0] : null);
+    // Redirect if POS is disabled for this restaurant
+    const isPosDisabledNow =
+      currentRestaurant?.posEnabled === false ||
+      activeRest?.posEnabled === false;
+    if (isPosDisabledNow && pathname === '/admin/pos') {
+      router.replace('/admin/dashboard');
+      return;
+    }
+  }, [currentUser, pathname, router, currentRestaurant, activeRest]);
 
   const activeRestaurantName = currentUser?.restaurantName || activeRest?.name || 'Restro Counter';
 
@@ -73,9 +82,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const hasTableQr = !isTableQrDisabled;
 
+  const isPosDisabled =
+    currentRestaurant?.posEnabled === false ||
+    activeRest?.posEnabled === false;
+
+  const hasPos = !isPosDisabled;
+
   const navItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Counter POS', href: '/admin/pos', icon: Calculator },
+    ...(hasPos ? [{ label: 'Counter POS', href: '/admin/pos', icon: Calculator }] : []),
     { label: 'Live Orders', href: '/admin/live-orders', icon: Flame, count: pendingCount },
     ...(hasTableQr ? [{ label: 'Tables & QR', href: '/admin/tables', icon: QrCode }] : []),
     { label: 'Menu Items', href: '/admin/menu', icon: UtensilsCrossed },

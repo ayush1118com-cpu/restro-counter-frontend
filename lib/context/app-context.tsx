@@ -268,6 +268,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               ordersCount: 0,
               salesTotal: 0,
               activeMenuCount: 0,
+              posEnabled: r.posEnabled !== undefined ? r.posEnabled : true,
+              tableQrEnabled: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               hasTableQrOrdering: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               createdAt: r.createdAt || new Date().toISOString(),
             };
@@ -610,6 +612,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ordersCount: dbRest.ordersCount ?? dbRest.metrics?.totalOrders ?? 0,
             salesTotal: dbRest.salesTotal ?? dbRest.metrics?.totalRevenue ?? 0,
             activeMenuCount: 0,
+            posEnabled: dbRest.posEnabled !== undefined ? dbRest.posEnabled : true,
+            tableQrEnabled: dbRest.tableQrEnabled !== undefined ? dbRest.tableQrEnabled : (dbRest.hasTableQrOrdering ?? true),
             hasTableQrOrdering: dbRest.tableQrEnabled !== undefined ? dbRest.tableQrEnabled : (dbRest.hasTableQrOrdering ?? true),
             createdAt: dbRest.createdAt
           }));
@@ -904,6 +908,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         formData.append('city', data.city);
         formData.append('adminEmail', data.email);
         formData.append('adminPassword', data.password || 'RestroAdmin123!');
+        if (data.posEnabled !== undefined) formData.append('posEnabled', String(data.posEnabled));
+        if (data.tableQrEnabled !== undefined) formData.append('tableQrEnabled', String(data.tableQrEnabled));
+        if (data.hasTableQrOrdering !== undefined) formData.append('hasTableQrOrdering', String(data.hasTableQrOrdering));
 
         const res = await fetch(`${API_URL}/restaurants`, {
           method: 'POST',
@@ -972,6 +979,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...data,
       ...(data.hasTableQrOrdering !== undefined ? { tableQrEnabled: data.hasTableQrOrdering } : {}),
       ...(data.tableQrEnabled !== undefined ? { hasTableQrOrdering: data.tableQrEnabled } : {}),
+      ...(data.posEnabled !== undefined ? { posEnabled: data.posEnabled } : {}),
     };
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
