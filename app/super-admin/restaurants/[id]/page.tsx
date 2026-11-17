@@ -73,6 +73,11 @@ export default function RestaurantDetailsPage() {
               posEnabled: r.posEnabled !== undefined ? r.posEnabled : true,
               tableQrEnabled: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
               hasTableQrOrdering: r.tableQrEnabled !== undefined ? r.tableQrEnabled : (r.hasTableQrOrdering ?? true),
+              subscriptionPlan: r.subscriptionPlan || (r.posEnabled === false ? 'SCANNER_ONLY' : (r.tableQrEnabled === false ? 'POS_ONLY' : 'BOTH')),
+              subscriptionPrice: r.subscriptionPrice !== undefined ? Number(r.subscriptionPrice) : (r.subscriptionPlan === 'BOTH' || (!r.subscriptionPlan && r.posEnabled !== false && r.tableQrEnabled !== false) ? 899 : 499),
+              paymentMode: r.paymentMode || 'UPI',
+              paymentReference: r.paymentReference,
+              paymentStatus: r.paymentStatus || 'PAID',
               createdAt: r.createdAt,
             });
           }
@@ -241,6 +246,31 @@ export default function RestaurantDetailsPage() {
             <div className="pt-3 border-t border-gray-100 flex justify-between text-gray-500">
               <span>Onboarded Date:</span>
               <span className="font-semibold text-gray-900">{formatDate(restaurant.createdAt)}</span>
+            </div>
+
+            {/* Subscription & Billing Package */}
+            <div className="pt-3 border-t border-gray-100 space-y-2">
+              <p className="text-gray-900 font-bold text-xs">Subscription Package & Payment</p>
+              <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-950">
+                    {restaurant.subscriptionPlan === 'BOTH' || (!restaurant.subscriptionPlan && restaurant.posEnabled !== false && restaurant.hasTableQrOrdering !== false)
+                      ? '⚡ Both POS & Scanner'
+                      : restaurant.subscriptionPlan === 'POS_ONLY' || (!restaurant.subscriptionPlan && restaurant.posEnabled !== false)
+                      ? '🖥️ Counter POS Only'
+                      : '📱 Table Scanner Only'}
+                  </span>
+                  <span className="text-xs font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full">
+                    ₹{restaurant.subscriptionPrice || (restaurant.subscriptionPlan === 'BOTH' || (restaurant.posEnabled !== false && restaurant.hasTableQrOrdering !== false) ? 899 : 499)}/mo
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-gray-600 pt-1 border-t border-amber-200/60">
+                  <span>Payment Mode: <strong>{restaurant.paymentMode || 'UPI'}</strong></span>
+                  <span className="text-emerald-700 font-bold bg-emerald-100/80 px-1.5 py-0.2 rounded">
+                    {restaurant.paymentStatus || 'PAID'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Feature Access & Module Permissions (RBAC) */}

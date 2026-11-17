@@ -88,10 +88,41 @@ export default function RestaurantsPage() {
       cell: (r) => getStatusBadge(r.status),
     },
     {
-      header: 'Orders',
-      cell: (r) => (
-        <span className="font-bold text-gray-900">{r.ordersCount.toLocaleString()}</span>
-      ),
+      header: 'Package & Payment',
+      cell: (r) => {
+        const pkg =
+          r.subscriptionPlan ||
+          (r.posEnabled !== false && r.hasTableQrOrdering !== false ? 'BOTH' : r.posEnabled !== false ? 'POS_ONLY' : 'SCANNER_ONLY');
+        const price = r.subscriptionPrice || (pkg === 'BOTH' ? 899 : 499);
+        const mode = r.paymentMode || 'UPI';
+
+        return (
+          <div className="space-y-1">
+            {pkg === 'BOTH' && (
+              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-black bg-amber-100 text-amber-950 border border-amber-300">
+                ⚡ Both (₹{price}/mo)
+              </span>
+            )}
+            {pkg === 'POS_ONLY' && (
+              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-black bg-blue-100 text-blue-950 border border-blue-300">
+                🖥️ POS Only (₹{price}/mo)
+              </span>
+            )}
+            {pkg === 'SCANNER_ONLY' && (
+              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-black bg-purple-100 text-purple-950 border border-purple-300">
+                📱 Scanner (₹{price}/mo)
+              </span>
+            )}
+
+            <div className="flex items-center gap-1.5 text-[10px]">
+              <span className="text-gray-500 font-semibold">Mode:</span>
+              <span className="font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                {mode}
+              </span>
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Active Modules (POS / Scanner)',

@@ -33,6 +33,11 @@ export interface Restaurant {
   hasTableQrOrdering?: boolean;
   tableQrEnabled?: boolean;
   posEnabled?: boolean;
+  subscriptionPlan?: 'BOTH' | 'POS_ONLY' | 'SCANNER_ONLY';
+  subscriptionPrice?: number;
+  paymentMode?: 'CASH' | 'UPI' | 'BANK_TRANSFER' | 'COMPLIMENTARY';
+  paymentReference?: string;
+  paymentStatus?: 'PAID' | 'PENDING';
 }
 
 export interface RestaurantTable {

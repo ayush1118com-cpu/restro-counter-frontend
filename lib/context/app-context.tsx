@@ -615,6 +615,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             posEnabled: dbRest.posEnabled !== undefined ? dbRest.posEnabled : true,
             tableQrEnabled: dbRest.tableQrEnabled !== undefined ? dbRest.tableQrEnabled : (dbRest.hasTableQrOrdering ?? true),
             hasTableQrOrdering: dbRest.tableQrEnabled !== undefined ? dbRest.tableQrEnabled : (dbRest.hasTableQrOrdering ?? true),
+            subscriptionPlan: dbRest.subscriptionPlan || (dbRest.posEnabled === false ? 'SCANNER_ONLY' : (dbRest.tableQrEnabled === false ? 'POS_ONLY' : 'BOTH')),
+            subscriptionPrice: dbRest.subscriptionPrice !== undefined ? Number(dbRest.subscriptionPrice) : (dbRest.subscriptionPlan === 'BOTH' || (!dbRest.subscriptionPlan && dbRest.posEnabled !== false && dbRest.tableQrEnabled !== false) ? 899 : 499),
+            paymentMode: dbRest.paymentMode || 'UPI',
+            paymentReference: dbRest.paymentReference,
+            paymentStatus: dbRest.paymentStatus || 'PAID',
             createdAt: dbRest.createdAt
           }));
           
@@ -944,6 +949,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.posEnabled !== undefined) formData.append('posEnabled', String(data.posEnabled));
         if (data.tableQrEnabled !== undefined) formData.append('tableQrEnabled', String(data.tableQrEnabled));
         if (data.hasTableQrOrdering !== undefined) formData.append('hasTableQrOrdering', String(data.hasTableQrOrdering));
+        if (data.subscriptionPlan) formData.append('subscriptionPlan', data.subscriptionPlan);
+        if (data.subscriptionPrice !== undefined) formData.append('subscriptionPrice', String(data.subscriptionPrice));
+        if (data.paymentMode) formData.append('paymentMode', data.paymentMode);
+        if (data.paymentReference) formData.append('paymentReference', data.paymentReference);
+        if (data.paymentStatus) formData.append('paymentStatus', data.paymentStatus);
 
         const res = await fetch(`${API_URL}/restaurants`, {
           method: 'POST',
