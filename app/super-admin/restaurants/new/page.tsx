@@ -14,7 +14,6 @@ import {
   QrCode,
   CreditCard,
   IndianRupee,
-  CheckCircle2,
   Smartphone,
   Banknote,
   Building,
@@ -80,8 +79,6 @@ export default function AddRestaurantPage() {
   const posEnabled = watch('posEnabled');
   const tableQrEnabled = watch('tableQrEnabled');
   const paymentMode = watch('paymentMode');
-  const subscriptionPrice = watch('subscriptionPrice');
-  const paymentStatus = watch('paymentStatus');
 
   const onSubmit = async (data: RestaurantFormData) => {
     const payload = {
@@ -127,18 +124,18 @@ export default function AddRestaurantPage() {
           </Button>
         </Link>
         <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Onboard New Restaurant</h2>
+          <h2 className="text-xl font-bold text-gray-900">Onboard New Restaurant</h2>
           <p className="text-xs text-gray-500">Create restaurant profile, choose subscription package and record payment mode</p>
         </div>
       </div>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl space-y-6"
+        className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/80 shadow-sm space-y-6"
       >
         {/* 1. GENERAL RESTAURANT DETAILS */}
-        <div className="flex items-center gap-2 pb-4 border-b border-gray-100 text-sm font-bold text-gray-900">
-          <Building2 className="w-5 h-5 text-amber-500" /> General Restaurant Details
+        <div className="flex items-center gap-2 pb-4 border-b border-gray-100 text-sm font-semibold text-gray-900">
+          <Building2 className="w-4 h-4 text-amber-500" /> General Restaurant Details
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -214,17 +211,17 @@ export default function AddRestaurantPage() {
         </div>
 
         {/* 2. SUBSCRIPTION PACKAGE SELECTION */}
-        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 space-y-4">
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-black text-gray-900">
-              <Layers className="w-5 h-5 text-amber-500" /> Subscription Package Selection
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <Layers className="w-4 h-4 text-amber-500" /> Subscription Package Selection
             </div>
-            <span className="text-[11px] font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
-              Select Monthly SaaS Plan
+            <span className="text-xs font-medium text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-200">
+              Monthly Plan
             </span>
           </div>
 
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-gray-500">
             Client ke liye package choose karein: Counter POS Only (₹499/mo), Table QR Scanner Only (₹499/mo) ya Dono Combo (₹899/mo):
           </p>
 
@@ -232,88 +229,88 @@ export default function AddRestaurantPage() {
             {/* Option 1: Both POS & Scanner */}
             <div
               onClick={() => handleSelectPackage('BOTH')}
-              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                 modulesMode === 'BOTH'
-                  ? 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-500/20 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                  ? 'border-amber-500 bg-amber-50/60 shadow-xs'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">⚡</span>
-                  <span className="text-xs font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full">
+                  <span className="text-xl">⚡</span>
+                  <span className="text-xs font-semibold bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full">
                     ₹899 / mo
                   </span>
                 </div>
-                <h4 className="font-black text-sm text-gray-900">Both POS & Scanner</h4>
-                <p className="text-[11px] text-gray-500 mt-1 leading-snug">
+                <h4 className="font-semibold text-sm text-gray-900">Both POS & Scanner</h4>
+                <p className="text-xs text-gray-500 mt-1 leading-normal">
                   Full restaurant suite: Counter POS billing + Table/Room QR self-ordering + live kitchen display.
                 </p>
               </div>
-              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] font-bold">
-                <span className="text-emerald-700">✓ POS + Scanner Active</span>
-                {modulesMode === 'BOTH' && <span className="text-amber-700 font-black">SELECTED ✓</span>}
+              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span className="text-emerald-700 font-medium">✓ POS + Scanner</span>
+                {modulesMode === 'BOTH' && <span className="text-amber-800 font-semibold text-xs">Selected ✓</span>}
               </div>
             </div>
 
             {/* Option 2: POS Only */}
             <div
               onClick={() => handleSelectPackage('POS_ONLY')}
-              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                 modulesMode === 'POS_ONLY'
-                  ? 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-500/20 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                  ? 'border-amber-500 bg-amber-50/60 shadow-xs'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">🖥️</span>
-                  <span className="text-xs font-black bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                  <span className="text-xl">🖥️</span>
+                  <span className="text-xs font-semibold bg-blue-500 text-white px-2 py-0.5 rounded-full">
                     ₹499 / mo
                   </span>
                 </div>
-                <h4 className="font-black text-sm text-gray-900">Counter POS Only</h4>
-                <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                  Counter billing, thermal receipts, customer credit (Khata) & offline resilience. Table QR hidden.
+                <h4 className="font-semibold text-sm text-gray-900">Counter POS Only</h4>
+                <p className="text-xs text-gray-500 mt-1 leading-normal">
+                  Counter billing, thermal receipts, customer credit (Khata) & offline mode. Table QR hidden.
                 </p>
               </div>
-              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] font-bold">
-                <span className="text-emerald-700">✓ Counter POS Active</span>
-                {modulesMode === 'POS_ONLY' && <span className="text-amber-700 font-black">SELECTED ✓</span>}
+              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span className="text-emerald-700 font-medium">✓ Counter POS</span>
+                {modulesMode === 'POS_ONLY' && <span className="text-amber-800 font-semibold text-xs">Selected ✓</span>}
               </div>
             </div>
 
             {/* Option 3: Scanner Only */}
             <div
               onClick={() => handleSelectPackage('SCANNER_ONLY')}
-              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                 modulesMode === 'SCANNER_ONLY'
-                  ? 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-500/20 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                  ? 'border-amber-500 bg-amber-50/60 shadow-xs'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">📱</span>
-                  <span className="text-xs font-black bg-purple-500 text-white px-2 py-0.5 rounded-full">
+                  <span className="text-xl">📱</span>
+                  <span className="text-xs font-semibold bg-purple-500 text-white px-2 py-0.5 rounded-full">
                     ₹499 / mo
                   </span>
                 </div>
-                <h4 className="font-black text-sm text-gray-900">Table Scanner (QR) Only</h4>
-                <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                  Dine-in tables & hotel rooms. Customers scan & order directly with name & phone. Counter POS hidden.
+                <h4 className="font-semibold text-sm text-gray-900">Table Scanner (QR) Only</h4>
+                <p className="text-xs text-gray-500 mt-1 leading-normal">
+                  Dine-in tables & hotel rooms. Customers scan & order with name & phone. Counter POS hidden.
                 </p>
               </div>
-              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] font-bold">
-                <span className="text-emerald-700">✓ QR Scanner Active</span>
-                {modulesMode === 'SCANNER_ONLY' && <span className="text-amber-700 font-black">SELECTED ✓</span>}
+              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span className="text-emerald-700 font-medium">✓ QR Scanner</span>
+                {modulesMode === 'SCANNER_ONLY' && <span className="text-amber-800 font-semibold text-xs">Selected ✓</span>}
               </div>
             </div>
           </div>
 
-          {/* Granular Checkbox Toggles */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 shadow-2xs">
+          {/* Checkbox Toggles */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 shadow-2xs">
               <input
                 type="checkbox"
                 checked={posEnabled}
@@ -326,12 +323,12 @@ export default function AddRestaurantPage() {
                 }}
                 className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
               />
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 font-medium">
                 <Calculator className="w-3.5 h-3.5 text-amber-500" /> Enable Counter POS System
               </span>
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 shadow-2xs">
+            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 shadow-2xs">
               <input
                 type="checkbox"
                 checked={tableQrEnabled}
@@ -344,7 +341,7 @@ export default function AddRestaurantPage() {
                 }}
                 className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
               />
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 font-medium">
                 <QrCode className="w-3.5 h-3.5 text-purple-600" /> Enable Table & Room QR Scanner Ordering
               </span>
             </label>
@@ -352,17 +349,17 @@ export default function AddRestaurantPage() {
         </div>
 
         {/* 3. PAYMENT COLLECTION & MODE (CASH / UPI) */}
-        <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-200/80 space-y-4">
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-black text-gray-900">
-              <CreditCard className="w-5 h-5 text-emerald-600" /> Subscription Payment & Collection Mode
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <CreditCard className="w-4 h-4 text-emerald-600" /> Subscription Payment & Collection Mode
             </div>
-            <span className="text-[11px] font-bold text-emerald-900 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+            <span className="text-xs font-medium text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
               Payment Method
             </span>
           </div>
 
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-gray-500">
             Client ne subscription ka payment kaise kiya? Select karein (Cash ya UPI ya Bank Transfer):
           </p>
 
@@ -370,63 +367,63 @@ export default function AddRestaurantPage() {
             {/* UPI */}
             <div
               onClick={() => setValue('paymentMode', 'UPI')}
-              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-1 ${
+              className={`p-3 rounded-xl border-2 transition-all cursor-pointer text-center space-y-1 ${
                 paymentMode === 'UPI'
-                  ? 'border-emerald-500 bg-emerald-100/60 ring-2 ring-emerald-500/20 shadow-sm'
+                  ? 'border-emerald-500 bg-emerald-50/70 shadow-xs'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <Smartphone className="w-5 h-5 text-emerald-600 mx-auto" />
-              <h5 className="font-black text-xs text-gray-900">UPI Payment</h5>
-              <p className="text-[10px] text-gray-500">GPay / PhonePe / QR</p>
+              <h5 className="font-semibold text-xs text-gray-900">UPI Payment</h5>
+              <p className="text-[11px] text-gray-500">GPay / PhonePe / QR</p>
             </div>
 
             {/* Cash */}
             <div
               onClick={() => setValue('paymentMode', 'CASH')}
-              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-1 ${
+              className={`p-3 rounded-xl border-2 transition-all cursor-pointer text-center space-y-1 ${
                 paymentMode === 'CASH'
-                  ? 'border-amber-500 bg-amber-100/60 ring-2 ring-amber-500/20 shadow-sm'
+                  ? 'border-amber-500 bg-amber-50/70 shadow-xs'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <Banknote className="w-5 h-5 text-amber-600 mx-auto" />
-              <h5 className="font-black text-xs text-gray-900">Direct Cash</h5>
-              <p className="text-[10px] text-gray-500">Collected in Cash</p>
+              <h5 className="font-semibold text-xs text-gray-900">Direct Cash</h5>
+              <p className="text-[11px] text-gray-500">Collected in Cash</p>
             </div>
 
             {/* Bank Transfer */}
             <div
               onClick={() => setValue('paymentMode', 'BANK_TRANSFER')}
-              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-1 ${
+              className={`p-3 rounded-xl border-2 transition-all cursor-pointer text-center space-y-1 ${
                 paymentMode === 'BANK_TRANSFER'
-                  ? 'border-blue-500 bg-blue-100/60 ring-2 ring-blue-500/20 shadow-sm'
+                  ? 'border-blue-500 bg-blue-50/70 shadow-xs'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <Building className="w-5 h-5 text-blue-600 mx-auto" />
-              <h5 className="font-black text-xs text-gray-900">Bank Transfer</h5>
-              <p className="text-[10px] text-gray-500">NEFT / IMPS / NetBanking</p>
+              <h5 className="font-semibold text-xs text-gray-900">Bank Transfer</h5>
+              <p className="text-[11px] text-gray-500">NEFT / IMPS / NetBanking</p>
             </div>
 
             {/* Complimentary */}
             <div
               onClick={() => setValue('paymentMode', 'COMPLIMENTARY')}
-              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-1 ${
+              className={`p-3 rounded-xl border-2 transition-all cursor-pointer text-center space-y-1 ${
                 paymentMode === 'COMPLIMENTARY'
-                  ? 'border-purple-500 bg-purple-100/60 ring-2 ring-purple-500/20 shadow-sm'
+                  ? 'border-purple-500 bg-purple-50/70 shadow-xs'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <Gift className="w-5 h-5 text-purple-600 mx-auto" />
-              <h5 className="font-black text-xs text-gray-900">Complimentary</h5>
-              <p className="text-[10px] text-gray-500">Free / 7-Day Demo</p>
+              <h5 className="font-semibold text-xs text-gray-900">Complimentary</h5>
+              <p className="text-[11px] text-gray-500">Free / 7-Day Demo</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Monthly Subscription Fee (₹) *
               </label>
               <Input
@@ -438,7 +435,7 @@ export default function AddRestaurantPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Payment Status *
               </label>
               <Select
@@ -451,7 +448,7 @@ export default function AddRestaurantPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Payment Ref / Notes (Optional)
               </label>
               <Input
@@ -463,30 +460,27 @@ export default function AddRestaurantPage() {
         </div>
 
         {/* 4. Kitchen Credentials Info Box */}
-        <div className="bg-amber-50/70 p-5 rounded-2xl border border-amber-200/80 space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200/60 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-900">
             <ShieldCheck className="w-4 h-4 text-amber-600" /> Kitchen Display Station (KDS) Auto-Generated Credentials
           </div>
-          <p className="text-xs text-amber-800/80 font-medium">
-            Creating this outlet automatically generates isolated <strong>Counter Admin</strong> & <strong>Kitchen KDS</strong> accounts for this specific restaurant:
+          <p className="text-xs text-gray-600">
+            Creating this outlet automatically generates isolated <strong>Counter Admin</strong> & <strong>Kitchen KDS</strong> accounts:
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-xs">
-            <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-xs">
-              <span className="text-amber-800 font-sans block text-[11px] font-bold mb-1">👨‍🍳 Kitchen Staff Email:</span>
-              <span className="font-bold text-gray-900 break-all">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+            <div className="bg-white p-2.5 rounded-lg border border-gray-200">
+              <span className="text-gray-500 block text-[11px] mb-0.5">👨‍🍳 Kitchen Staff Email:</span>
+              <span className="font-medium text-gray-900 break-all">
                 {watch('email') ? `kitchen.${watch('email')}` : 'kitchen.<admin_email>'}
               </span>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-xs">
-              <span className="text-amber-800 font-sans block text-[11px] font-bold mb-1">🔑 Shared Password:</span>
-              <span className="font-bold text-gray-900">
+            <div className="bg-white p-2.5 rounded-lg border border-gray-200">
+              <span className="text-gray-500 block text-[11px] mb-0.5">🔑 Shared Password:</span>
+              <span className="font-medium text-gray-900">
                 {watch('password') || 'Same as Counter Manager Password'}
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-amber-700 italic">
-            * Note: Orders for this restaurant will ONLY show in this restaurant&apos;s kitchen login. Other restaurants cannot see these orders.
-          </p>
         </div>
 
         <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
@@ -499,7 +493,7 @@ export default function AddRestaurantPage() {
             type="submit"
             variant="primary"
             isLoading={isSubmitting}
-            className="font-bold shadow-md shadow-amber-500/20 px-6"
+            className="font-semibold shadow-xs px-6"
           >
             Create Restaurant Profile
           </Button>
