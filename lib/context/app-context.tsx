@@ -946,6 +946,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         formData.append('city', data.city);
         formData.append('adminEmail', data.email);
         formData.append('adminPassword', data.password || 'RestroAdmin123!');
+        if (data.status) formData.append('status', data.status);
         if (data.posEnabled !== undefined) formData.append('posEnabled', String(data.posEnabled));
         if (data.tableQrEnabled !== undefined) formData.append('tableQrEnabled', String(data.tableQrEnabled));
         if (data.hasTableQrOrdering !== undefined) formData.append('hasTableQrOrdering', String(data.hasTableQrOrdering));
@@ -962,10 +963,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
         const resData = await res.json();
         if (resData.success) {
-          savedRest = resData.data;
-          finalId = savedRest._id;
+          savedRest = resData.data?.restaurant || resData.data;
+          finalId = savedRest?._id || savedRest?.id || finalId;
         } else {
-          toast.error(resData.message || 'Failed to create restaurant');
+          const errMsg = Array.isArray(resData.errors) && resData.errors.length > 0
+            ? resData.errors.map((e: any) => (e.field ? e.field + ': ' : '') + e.message).join(', ')
+            : (resData.message || 'Failed to create restaurant');
+          toast.error(errMsg);
           return null;
         }
       } catch (e) {

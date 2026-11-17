@@ -92,8 +92,10 @@ export default function AddRestaurantPage() {
       paymentReference: data.paymentReference || '',
       paymentStatus: data.paymentStatus,
     };
-    await addRestaurant(payload);
-    router.push('/super-admin/restaurants');
+    const res = await addRestaurant(payload);
+    if (res) {
+      router.push('/super-admin/restaurants');
+    }
   };
 
   const handleSelectPackage = (mode: 'BOTH' | 'POS_ONLY' | 'SCANNER_ONLY') => {
